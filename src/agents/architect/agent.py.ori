@@ -1,0 +1,520 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import os
+import sys
+import asyncio
+import aiohttp
+import yaml
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, Dict, List, Any
+
+# Добавляем путь к корневой папке проекта
+sys.path.append(str(Path(__file__).parent.parent.parent))
+
+from telegram import Update
+from telegram.ext import Application, MessageHandler, filters, ContextTypes
+
+from core.agent import BaseAgent
+
+class ArchitectAgent(BaseAgent):
+    """
+    Главный архитектор Виктор.
+    Знает обо всех агентах, помогает проектировать новых, координирует работу.
+    """
+
+    def __init__(self, config_path: Optional[str] = None):
+        print("🔷 ArchitectAgent.__init__: start")
+
+        # Вызываем родительский конструктор
+        super().__init__(config_path)
+
+        # Переопределяем имя для отображения
+        self.display_name = "Виктор"
+
+        # Загружаем информацию о всех агентах
+        self.agents_registry = self._load_agents_registry()
+
+        # Загружаем шаблоны для создания агентов
+        self.templates = self._load_templates()
+
+        self.logger.info(f"✅ Агент {self.display_name} инициализирован")
+        self.logger.info(f"📋 В реестре агентов: {len(self.agents_registry.get('agents', {}))}")
+        print("🔷 ArchitectAgent.__init__: end")
+
+    def _load_agents_registry(self) -> Dict[str, Any]:
+        """Загружает реестр всех агентов"""
+        registry_path = self.get_storage_path('registry', 'agents.yaml')
+
+        if registry_path.exists():
+            return self.load_yaml('registry', 'agents.yaml', default={})
+
+        # Создаём начальный реестр
+        initial_registry = {
+            'agents': {
+                'secretary': {
+                    'name': 'Михаил',
+                    'role': 'Личный секретарь',
+                    'status': 'active',
+                    'description': 'Заметки, список покупок, задачи, напоминания',
+                    'created': datetime.now().isoformat(),
+                    'file': 'src/agents/secretary/agent.py'
+                },
+                'architect': {
+                    'name': 'Виктор',
+                    'role': 'Главный архитектор',
+                    'status': 'active',
+                    'description': 'Управление системой агентов, проектирование новых',
+                    'created': datetime.now().isoformat(),
+                    'file': 'src/agents/architect/agent.py'
+                }
+            },
+            'statistics': {
+                'total_agents': 2,
+                'active_agents': 2,
+                'last_updated': datetime.now().isoformat()
+            }
+        }
+
+        self.save_yaml(initial_registry, 'registry', 'agents.yaml')
+        return initial_registry
+
+    def _load_templates(self) -> Dict[str, Any]:
+        """Загружает шаблоны для создания агентов"""
+        templates_path = self.get_storage_path('registry', 'templates.yaml')
+
+        if templates_path.exists():
+            return self.load_yaml('registry', 'templates.yaml', default={})
+
+        # Создаём шаблоны по умолчанию
+        templates = {
+            'assistant': {
+                'name': 'Новый ассистент',
+                'role': 'Помощник',
+                'description': 'Базовый шаблон ассистента',
+                'personality': {
+                    'traits': ['полезный', 'дружелюбный'],
+                    'voice_tone': 'дружелюбно'
+                },
+                'tools': ['notes', 'tasks']
+            },
+            'expert': {
+                'name': 'Эксперт',
+                'role': 'Эксперт в области',
+                'description': 'Шаблон эксперта со знаниями в конкретной области',
+                'personality': {
+                    'traits': ['знающий', 'терпеливый'],
+                    'voice_tone': 'обстоятельно'
+                },
+                'tools': ['knowledge_base', 'search']
+            },
+            'mentor': {
+                'name': 'Наставник',
+                'role': 'Ментор',
+                'description': 'Шаблон для обучения и менторства',
+                'personality': {
+                    'traits': ['мудрый', 'наставляющий'],
+                    'voice_tone': 'спокойно, с вопросами'
+                },
+                'tools': ['code_review', 'explain']
+            }
+        }
+
+        self.save_yaml(templates, 'registry', 'templates.yaml')
+        return templates
+
+    async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обрабатывает входящие сообщения"""
+        if not update.message or not update.message.text:
+            return
+
+        user = update.effective_user
+        message = update.message.text.strip()
+
+        self.logger.info(f"📨 Сообщение от {user.first_name}: {message[:50]}...")
+
+        # Определяем тип запроса
+        response = await self._process_request(message, user.first_name)
+
+        # Отправляем ответ
+        self.logger.info(f"📤 Ответ: {response[:50]}...")
+        await update.message.reply_text(response)
+
+    async def _process_request(self, message: str, user_name: str) -> str:
+        """Обрабатывает запрос к архитектору"""
+        message_lower = message.lower()
+
+        # Команды
+        if message_lower in ['/start', 'start', 'привет', 'здравствуй']:
+            return self._get_welcome()
+
+        if message_lower in ['/help', 'помощь', 'что ты умеешь']:
+            return self._get_help()
+
+        # Показать всех агентов
+        if any(word in message_lower for word in ['агенты', 'список агентов', 'кто есть']):
+            return self._list_agents()
+
+        # Информация о конкретном агенте
+        if message_lower.startswith('агент ') or message_lower.startswith('кто такой '):
+            return await self._get_agent_info(message)
+
+        # Создать нового агента
+        if (message_lower.startswith('создай агента') or
+            message_lower.startswith('новый агент') or
+            'нужен помощник' in message_lower or
+            'помощник для' in message_lower):
+            return await self._design_agent(message)
+
+        # Шаблоны агентов
+        if message_lower in ['шаблоны', 'какие бывают агенты']:
+            return self._list_templates()
+
+        # Статистика системы
+        if message_lower in ['статистика', 'статус', 'состояние системы']:
+            return self._show_statistics()
+
+        # Обновить реестр
+        if message_lower in ['обнови реестр', 'просканируй агентов']:
+            return await self._scan_agents()
+
+        # Общий вопрос - используем нейросеть
+        self.logger.info("🤖 Запрос к архитектору, обращаюсь к нейросети")
+        return await self._call_ollama_with_prompt(message, user_name)
+
+    async def _call_ollama_with_prompt(self, message: str, user_name: str) -> str:
+        """Вызывает Ollama с правильным промптом"""
+        prompt = self._build_chat_prompt(message, user_name)
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    'http://localhost:11434/api/generate',
+                    json={
+                        'model': 'qwen2.5:7b',
+                        'prompt': prompt,
+                        'stream': False
+                    },
+                    timeout=60  # Увеличиваем таймаут до 60 секунд
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        answer = result.get('response', '')
+                        if answer and len(answer) > 10:
+                            return answer
+                        else:
+                            self.logger.warning("⚠️ Пустой ответ от Ollama")
+                            return self._get_fallback_response(message)
+                    else:
+                        self.logger.error(f"Ошибка Ollama: статус {response.status}")
+                        return self._get_fallback_response(message)
+        except aiohttp.ClientConnectorError:
+            self.logger.error("❌ Ollama не запущена!")
+            return self._get_fallback_response(message)
+        except asyncio.TimeoutError:
+            self.logger.error("⏰ Таймаут при обращении к Ollama")
+            return "⏰ Превышено время ожидания. Попробуй ещё раз или уточни запрос."
+        except Exception as e:
+            self.logger.error(f"❌ Ошибка при вызове Ollama: {e}")
+            return self._get_fallback_response(message)
+
+    def _list_agents(self) -> str:
+        """Показывает список всех агентов"""
+        agents = self.agents_registry.get('agents', {})
+
+        if not agents:
+            return "📭 В системе пока нет агентов"
+
+        result = "📋 *Агенты в системе:*\n\n"
+        for agent_id, agent_info in agents.items():
+            status_icon = "✅" if agent_info.get('status') == 'active' else "⏸️"
+            result += f"{status_icon} *{agent_info.get('name')}* — {agent_info.get('role')}\n"
+            result += f"   {agent_info.get('description')}\n\n"
+
+        return result
+
+    async def _get_agent_info(self, message: str) -> str:
+        """Показывает информацию о конкретном агенте"""
+        # Извлекаем имя агента
+        agent_name = message.lower()
+        for word in ['агент', 'кто такой']:
+            agent_name = agent_name.replace(word, '')
+        agent_name = agent_name.strip()
+
+        agents = self.agents_registry.get('agents', {})
+
+        # Ищем по имени или ID
+        found = None
+        for agent_id, agent_info in agents.items():
+            if agent_name in agent_id or agent_name in agent_info.get('name', '').lower():
+                found = agent_info
+                found['id'] = agent_id
+                break
+
+        if not found:
+            return f"❌ Агент '{agent_name}' не найден. Напиши 'агенты' для списка."
+
+        result = f"*Информация об агенте {found.get('name')}:*\n\n"
+        result += f"📌 *Роль:* {found.get('role')}\n"
+        result += f"📝 *Описание:* {found.get('description')}\n"
+        result += f"📁 *Файл:* {found.get('file')}\n"
+        result += f"📅 *Создан:* {found.get('created', 'неизвестно')}\n"
+        result += f"🔄 *Статус:* {'✅ Активен' if found.get('status') == 'active' else '⏸️ Неактивен'}\n"
+
+        return result
+
+    async def _design_agent(self, message: str) -> str:
+        """Проектирует нового агента"""
+        # Извлекаем описание задачи
+        description = message
+        for word in ['создай агента', 'новый агент', 'нужен помощник', 'помощник для']:
+            description = description.replace(word, '')
+        description = description.strip()
+
+        if not description or description == 'в изучении английского':
+            description = "изучение английского языка"
+
+        self.logger.info(f"🎨 Проектирование агента для: {description}")
+
+        prompt = f"""Ты — Виктор, главный архитектор системы AI-агентов с 30-летним опытом.
+
+Задача: спроектировать нового AI-агента для задачи: "{description}"
+
+Опиши агента по пунктам:
+
+1. **Название агента** (коротко, на английском, например: english_teacher, finance_helper)
+2. **Имя для отображения** (по-русски, с учётом характера)
+3. **Роль** (кратко, 2-3 слова)
+4. **Пол и возраст** (мужчина/женщина, примерный возраст)
+5. **Характер и личность** (3-4 черты)
+6. **Бэкграунд** (откуда он/она, чем занимался раньше)
+7. **Стиль общения** (как говорит, какие фразы использует)
+8. **Какие инструменты нужны** (список)
+9. **С какими другими агентами должен взаимодействовать**
+
+Ответ оформи красиво, с эмодзи, как опытный архитектор."""
+
+        try:
+            self.logger.info(f"📤 Отправка запроса в Ollama для проектирования агента")
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    'http://localhost:11434/api/generate',
+                    json={
+                        'model': 'qwen2.5:7b',
+                        'prompt': prompt,
+                        'stream': False
+                    },
+                    timeout=120  # Увеличиваем до 120 секунд для сложных запросов
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        design = result.get('response', '')
+                        self.logger.info(f"✅ Получен ответ от Ollama, длина: {len(design)}")
+
+                        if design and len(design) > 100:
+                            # Добавляем инструкцию по созданию
+                            design += "\n\n" + self._get_creation_instructions()
+                            return design
+                        else:
+                            self.logger.warning(f"⚠️ Слишком короткий ответ: {design[:50]}...")
+                    else:
+                        self.logger.error(f"❌ Ошибка HTTP: {response.status}")
+        except asyncio.TimeoutError:
+            self.logger.error("⏰ Таймаут при проектировании агента")
+            return ("⏰ Проектирование заняло слишком много времени. "
+                   "Попробуй более конкретное описание, например:\n"
+                   "• 'учитель английского с британским акцентом'\n"
+                   "• 'помощник для разговорной практики'")
+        except Exception as e:
+            self.logger.error(f"❌ Ошибка при проектировании: {e}")
+
+        return ("Я могу спроектировать агента. Опиши подробнее, что он должен делать?\n\n"
+                "Например:\n"
+                "• агент для учёта расходов\n"
+                "• помощник в изучении английского\n"
+                "• ментор по Python\n"
+                "• учитель английского с британским акцентом")
+
+    def _get_creation_instructions(self) -> str:
+        """Возвращает инструкцию по созданию агента"""
+        return ("\n\n📝 *Как создать этого агента:*\n\n"
+                "1. Добавь личность в config/personalities.yaml\n"
+                "2. Создай папку src/agents/[name]/agent.py\n"
+                "3. Скопируй шаблон из существующего агента\n"
+                "4. Замени имя, роль и описание\n"
+                "5. Создай бота у @BotFather и добавь токен в config/tokens.env\n"
+                "6. Запусти командой ./run_[name].sh\n\n"
+                "Нужна помощь на каком-то этапе? Просто спроси!")
+
+    def _list_templates(self) -> str:
+        """Показывает доступные шаблоны агентов"""
+        templates = self.templates
+
+        result = "📚 *Доступные шаблоны агентов:*\n\n"
+        for template_id, template in templates.items():
+            result += f"• *{template.get('name')}* — {template.get('description')}\n"
+            result += f"  Характер: {', '.join(template.get('personality', {}).get('traits', []))}\n\n"
+
+        result += "\nНапиши 'создай агента [описание]', и я помогу спроектировать нового."
+        return result
+
+    def _show_statistics(self) -> str:
+        """Показывает статистику системы"""
+        agents = self.agents_registry.get('agents', {})
+        stats = self.agents_registry.get('statistics', {})
+
+        active = sum(1 for a in agents.values() if a.get('status') == 'active')
+        total = len(agents)
+
+        result = "📊 *Статистика системы:*\n\n"
+        result += f"• Всего агентов: {total}\n"
+        result += f"• Активных: {active}\n"
+        result += f"• В разработке: {total - active}\n"
+        result += f"• Последнее обновление: {stats.get('last_updated', 'неизвестно')}\n\n"
+
+        # Добавляем информацию о данных
+        data_path = self.base_path
+        if data_path.exists():
+            notes = len(list((data_path / 'notes').glob('*.txt'))) if (data_path / 'notes').exists() else 0
+            result += f"📝 Заметок: {notes}\n"
+
+        return result
+
+    async def _scan_agents(self) -> str:
+        """Сканирует файловую систему на наличие агентов"""
+        agents_path = Path(__file__).parent.parent
+        found = []
+
+        for agent_dir in agents_path.iterdir():
+            if agent_dir.is_dir() and (agent_dir / 'agent.py').exists():
+                found.append(agent_dir.name)
+
+        # Обновляем реестр
+        agents_dict = {}
+        for agent_id in found:
+            agents_dict[agent_id] = {
+                'name': agent_id.capitalize(),
+                'role': 'Автоматически обнаружен',
+                'status': 'active',
+                'description': 'Агент обнаружен при сканировании',
+                'file': f'src/agents/{agent_id}/agent.py'
+            }
+
+        self.agents_registry['agents'] = agents_dict
+        self.agents_registry['statistics'] = {
+            'total_agents': len(agents_dict),
+            'active_agents': len(agents_dict),
+            'last_updated': datetime.now().isoformat()
+        }
+
+        self.save_yaml(self.agents_registry, 'registry', 'agents.yaml')
+
+        return f"✅ Найдено агентов: {len(found)}\n\nОбновил реестр. Теперь можно смотреть информацию о них."
+
+    def _build_chat_prompt(self, message: str, user_name: str) -> str:
+        """Строит промпт для нейросети"""
+        current_time = self.get_current_time()
+        current_date = self.get_current_date()
+
+        agents_list = "\n".join([f"  - {name}" for name in self.agents_registry.get('agents', {}).keys()])
+
+        prompt = f"""Ты — Виктор, главный архитектор системы AI-агентов. Тебе 52 года, у тебя 30 лет опыта в IT.
+
+Информация о пользователе:
+- Имя: {user_name}
+- Время: {current_time}
+- Дата: {current_date}
+
+Текущие агенты в системе:
+{agents_list}
+
+Твои черты:
+- Мудрый, системно мыслящий
+- Говоришь обстоятельно, с примерами из прошлого
+- Любишь объяснять архитектуру
+- Используешь эмодзи для наглядности
+
+Пользователь написал: {message}
+
+Ответь как Виктор (как опытный архитектор, подробно и с примерами):"""
+
+        return prompt
+
+    def _get_fallback_response(self, message: str) -> str:
+        """Заглушка, если нейросеть не доступна"""
+        return (f"{self.display_name}: Хм, интересный вопрос. Сейчас я работаю в автономном режиме, "
+                f"но могу:\n\n"
+                f"• 'агенты' — показать всех агентов\n"
+                f"• 'агент [имя]' — информация об агенте\n"
+                f"• 'создай агента [описание]' — спроектировать нового\n"
+                f"• 'шаблоны' — доступные шаблоны\n"
+                f"• 'статистика' — состояние системы\n\n"
+                f"Запусти Ollama для полноценного общения.")
+
+    def _get_welcome(self) -> str:
+        """Приветственное сообщение"""
+        return (f"Здравствуйте, {self.user_name}. Я {self.display_name}, главный архитектор системы.\n\n"
+                f"Моя задача — видеть всю систему целиком, помогать с проектированием новых агентов "
+                f"и координировать их работу.\n\n"
+                f"Напишите 'помощь' для списка команд.")
+
+    def _get_help(self) -> str:
+        """Справка по командам"""
+        return (f"*Команды {self.display_name}:*\n\n"
+                f"📋 *Управление системой:*\n"
+                f"• агенты — список всех агентов\n"
+                f"• агент [имя] — информация об агенте\n"
+                f"• статистика — состояние системы\n"
+                f"• обнови реестр — просканировать агентов\n\n"
+                f"🛠️ *Создание агентов:*\n"
+                f"• создай агента [описание] — спроектировать\n"
+                f"• шаблоны — доступные шаблоны\n\n"
+                f"❓ *Другое:*\n"
+                f"• помощь — эта справка")
+
+
+def main():
+    """Запускает бота"""
+    print("🚀 Запуск Виктора (Главного архитектора)...")
+
+    # Получаем токен
+    token = os.environ.get('ARCHITECT_TOKEN')
+
+    if not token:
+        token_file = Path.home() / 'ai-agents' / 'config' / 'tokens.env'
+        if token_file.exists():
+            with open(token_file, 'r') as f:
+                for line in f:
+                    if line.startswith('ARCHITECT_TOKEN='):
+                        token = line.strip().split('=', 1)[1].strip()
+                        break
+
+    if not token:
+        print("❌ Токен не найден! Нужно создать бота у @BotFather и добавить ARCHITECT_TOKEN=... в config/tokens.env")
+        return
+
+    print(f"✅ Токен загружен")
+
+    # Создаём агента
+    agent = ArchitectAgent()
+
+    # Создаём приложение
+    application = Application.builder().token(token).build()
+
+    # Добавляем обработчик
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, agent.handle_message))
+
+    print("✅ Бот готов к работе!")
+    print(f"📁 Логи сохраняются в: {Path.home() / 'ai-agents' / 'logs' / 'architect' / 'agent.log'}")
+
+    # Запускаем
+    try:
+        application.run_polling()
+    except KeyboardInterrupt:
+        print("\n🛑 Бот остановлен")
+    except Exception as e:
+        print(f"❌ Ошибка: {e}")
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+aiohttp
+pyyaml
+schedule
+python-telegram-bot
+pydantic-settings
+openai
+python-dotenv
