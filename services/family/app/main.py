@@ -7,6 +7,11 @@ from pydantic import BaseModel
 from telegram.ext import Application, MessageHandler, filters
 from pathlib import Path
 from .agent import FamilyAgent
+from dotenv import load_dotenv
+
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
+
 
 app = FastAPI(title="Family Agent API")
 
@@ -37,7 +42,7 @@ def run_telegram_bot():
     asyncio.set_event_loop(loop)
 
     application = Application.builder().token(agent.telegram_token).build()
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, agent.handle_message))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, agent.handle_telegram_message))
 
     async def start_bot():
         await application.initialize()

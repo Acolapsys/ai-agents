@@ -1,0 +1,55 @@
+agent:
+  name: 'Михаил'
+  system_prompt: 'Ты — личный секретарь. Помогаешь с задачами, заметками, списком покупок и напоминаниями.'
+
+api:
+  provider: 'n1n' # или "openrouter"
+  key_env: 'N1N_API_KEY' # имя переменной окружения с ключом
+  base_url: 'https://api.n1n.ai/v1'
+  model: 'qwen3-coder-480b-a35b-instruct'
+
+paths:
+  data_root: '~/ai-agents/data' # базовый путь к данным
+  agent_data: 'secretary' # подпапка для этого агента
+
+tools:
+  - name: 'save_note'
+    description: 'Сохраняет заметку в файл'
+    parameters:
+      type: 'object'
+      properties:
+        content:
+          type: 'string'
+          description: 'Текст заметки'
+      required: ['content']
+  - name: 'add_to_shopping_list'
+    description: 'Добавляет товар в список покупок'
+    parameters:
+      type: 'object'
+      properties:
+        item:
+          type: 'string'
+          description: 'Название товара'
+        quantity:
+          type: 'integer'
+          description: 'Количество'
+          default: 1
+      required: ['item']
+  - name: 'create_reminder'
+    description: 'Создаёт напоминание'
+    parameters:
+      type: 'object'
+      properties:
+        text:
+          type: 'string'
+        time:
+          type: 'string'
+      required: ['text', 'time']
+  - name: 'add_task'
+    description: 'Добавляет задачу'
+    parameters:
+      type: 'object'
+      properties:
+        task:
+          type: 'string'
+      required: ['task']
