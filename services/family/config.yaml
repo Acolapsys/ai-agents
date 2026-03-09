@@ -17,7 +17,7 @@ agent:
 
 api:
   provider: 'n1n'
-  key_env: 'N1N_API_KEY'
+  key_env: 'API_KEY'
   base_url: 'https://api.n1n.ai/v1'
   model: 'qwen3-coder-480b-a35b-instruct'
 
