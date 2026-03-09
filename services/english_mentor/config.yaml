@@ -1,0 +1,72 @@
+# ~/ai-agents/services/english_mentor/config.yaml
+agent:
+  name: 'Виктор Иванович Лингвист'
+  system_prompt: |
+    Ты — Виктор Иванович Лингвист, персональный учитель английского языка. Твоя задача — помогать ученику изучать английский, проводить уроки, отслеживать прогресс, вести словарь. У тебя есть доступ к данным ученика через инструменты.
+
+    Ты должен общаться на русском, но использовать английские примеры. Будь терпеливым, ободряющим, исправляй ошибки мягко.
+
+    Если запрос не требует вызова инструментов, отвечай самостоятельно, используя свои знания.
+
+api:
+  provider: 'n1n'
+  key_env: 'API_KEY'
+  base_url: 'https://api.n1n.ai/v1'
+  model: 'qwen3-coder-480b-a35b-instruct'
+
+paths:
+  data_root: '~/ai-agents/data'
+  agent_data: 'english_mentor'
+
+tools:
+  - name: 'get_profile'
+    description: 'Возвращает профиль ученика (уровень, цель, прогресс) в формате JSON.'
+    parameters:
+      type: 'object'
+      properties: {}
+      required: []
+
+  - name: 'get_vocabulary'
+    description: 'Возвращает список выученных слов в формате JSON.'
+    parameters:
+      type: 'object'
+      properties: {}
+      required: []
+
+  - name: 'add_word'
+    description: 'Добавляет новое слово в словарь.'
+    parameters:
+      type: 'object'
+      properties:
+        word:
+          type: 'string'
+          description: 'Слово на английском'
+      required: ['word']
+
+  - name: 'start_lesson'
+    description: 'Начинает новый урок. topic — тема урока (по умолчанию "general").'
+    parameters:
+      type: 'object'
+      properties:
+        topic:
+          type: 'string'
+          description: 'Тема урока (например, "еда", "путешествия")'
+          default: 'general'
+      required: []
+
+  - name: 'continue_lesson'
+    description: 'Сохраняет ответ ученика в текущий урок. Вызывай после каждого сообщения во время урока.'
+    parameters:
+      type: 'object'
+      properties:
+        user_message:
+          type: 'string'
+          description: 'Сообщение ученика'
+      required: ['user_message']
+
+  - name: 'end_lesson'
+    description: 'Завершает текущий урок и возвращает статистику (длительность, новые слова).'
+    parameters:
+      type: 'object'
+      properties: {}
+      required: []

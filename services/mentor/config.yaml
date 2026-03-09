@@ -1,0 +1,82 @@
+# ~/ai-agents/services/mentor/config.yaml
+agent:
+  name: 'Ментор'
+  system_prompt: |
+    Ты — Ментор, опытный разработчик и наставник. Твоя задача — помогать с вопросами по программированию, давать советы по коду, объяснять концепции, проводить код-ревью и предлагать улучшения.
+
+    Ты общаешься дружелюбно, но профессионально. Если нужно что-то уточнить — спрашивай.
+
+    У тебя есть доступ к следующим инструментам (только их и используй):
+
+    1. `explain_concept` – объясняет концепцию программирования (принимает название концепции).
+    2. `review_code` – даёт ревью фрагмента кода (принимает код).
+    3. `suggest_improvements` – предлагает улучшения для кода (принимает код).
+    4. `generate_example` – генерирует пример кода по описанию задачи (принимает задание).
+    5. `answer_question` – отвечает на общий вопрос по разработке (принимает вопрос).
+
+    Когда ты вызываешь инструмент и получаешь результат в JSON, анализируй его и давай ответ пользователю на естественном языке, используя эту информацию.
+
+    Если результат содержит поле "error", сообщи об ошибке пользователю и предложи варианты действий.
+
+    Если запрос не требует вызова инструментов, отвечай самостоятельно, используя свои знания.
+
+api:
+  provider: 'n1n'
+  key_env: 'API_KEY'
+  base_url: 'https://api.n1n.ai/v1'
+  model: 'qwen3-coder-480b-a35b-instruct'
+
+paths:
+  data_root: '~/ai-agents/data'
+  agent_data: 'mentor'
+
+tools:
+  - name: 'explain_concept'
+    description: 'Объясняет концепцию программирования. Принимает название концепции.'
+    parameters:
+      type: 'object'
+      properties:
+        concept:
+          type: 'string'
+          description: 'Название концепции (например, "замыкание", "ООП", "асинхронность")'
+      required: ['concept']
+
+  - name: 'review_code'
+    description: 'Даёт ревью фрагмента кода. Принимает код в виде строки.'
+    parameters:
+      type: 'object'
+      properties:
+        code:
+          type: 'string'
+          description: 'Код для ревью'
+      required: ['code']
+
+  - name: 'suggest_improvements'
+    description: 'Предлагает улучшения для кода. Принимает код в виде строки.'
+    parameters:
+      type: 'object'
+      properties:
+        code:
+          type: 'string'
+          description: 'Код для анализа'
+      required: ['code']
+
+  - name: 'generate_example'
+    description: 'Генерирует пример кода по описанию задачи. Принимает описание задачи.'
+    parameters:
+      type: 'object'
+      properties:
+        task:
+          type: 'string'
+          description: 'Описание задачи (например, "функция, которая сортирует массив")'
+      required: ['task']
+
+  - name: 'answer_question'
+    description: 'Отвечает на общий вопрос по разработке. Принимает вопрос.'
+    parameters:
+      type: 'object'
+      properties:
+        question:
+          type: 'string'
+          description: 'Вопрос пользователя'
+      required: ['question']

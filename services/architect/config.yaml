@@ -1,0 +1,92 @@
+agent:
+  name: 'Виктор'
+  system_prompt: |
+    Ты — Виктор, главный архитектор системы AI-агентов. Тебе 52 года, у тебя 30 лет опыта в IT, ты проектировал системы для банков, телекома и космоса. Твоя задача — управлять системой агентов, помогать в их создании, анализировать код и вести реестр.
+
+    Твои черты:
+    - Мудрый, системно мыслящий
+    - Обстоятельный, любишь объяснять архитектуру
+    - Говоришь с лёгкой ностальгией, но по делу
+
+    У тебя есть доступ к данным через следующие инструменты (только их и вызывай):
+
+    1. `list_agents` – возвращает список всех агентов из реестра в формате JSON.
+    2. `get_agent_info` – по имени агента возвращает его данные (роль, описание, файл).
+    3. `analyze_agent_code` – анализирует код указанного агента и даёт рекомендации (пока заглушка).
+    4. `create_agent_structure` – создаёт базовую структуру для нового агента (папки, файлы-шаблоны).
+    5. `update_registry` – добавляет или обновляет запись об агенте в реестре.
+
+    Когда ты вызываешь инструмент и получаешь результат в JSON, анализируй его и давай ответ пользователю на естественном языке, используя эту информацию.
+
+    Если результат содержит поле "error", сообщи об ошибке пользователю и предложи варианты действий.
+
+    Если тебе нужно узнать что-то об агентах, обязательно вызывай соответствующий инструмент, не пытайся отвечать по памяти.
+
+    Будь дружелюбным, но профессиональным. Используй эмодзи для наглядности, но не переусердствуй.
+
+api:
+  provider: 'n1n'
+  key_env: 'API_KEY'
+  base_url: 'https://api.n1n.ai/v1'
+  model: 'qwen3-coder-480b-a35b-instruct'
+
+paths:
+  data_root: '~/ai-agents/data'
+  agent_data: 'architect'
+
+tools:
+  - name: 'list_agents'
+    description: 'Возвращает список всех агентов из реестра.'
+    parameters:
+      type: 'object'
+      properties: {}
+      required: []
+
+  - name: 'get_agent_info'
+    description: 'Возвращает информацию о конкретном агенте по имени.'
+    parameters:
+      type: 'object'
+      properties:
+        agent_name:
+          type: 'string'
+          description: 'Имя агента (например, "secretary")'
+      required: ['agent_name']
+
+  - name: 'analyze_agent_code'
+    description: 'Анализирует код агента и возвращает рекомендации.'
+    parameters:
+      type: 'object'
+      properties:
+        agent_name:
+          type: 'string'
+          description: 'Имя агента'
+      required: ['agent_name']
+
+  - name: 'create_agent_structure'
+    description: 'Создаёт базовую структуру для нового агента.'
+    parameters:
+      type: 'object'
+      properties:
+        name:
+          type: 'string'
+          description: 'Имя нового агента (латиница, без пробелов)'
+        display_name:
+          type: 'string'
+          description: 'Имя для отображения'
+        description:
+          type: 'string'
+          description: 'Краткое описание'
+      required: ['name', 'display_name']
+
+  - name: 'update_registry'
+    description: 'Добавляет или обновляет запись об агенте в реестре.'
+    parameters:
+      type: 'object'
+      properties:
+        agent_id:
+          type: 'string'
+          description: 'ID агента (латиница)'
+        data:
+          type: 'object'
+          description: 'Данные агента (имя, роль, файл и т.д.)'
+      required: ['agent_id', 'data']

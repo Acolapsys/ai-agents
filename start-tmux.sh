@@ -11,9 +11,9 @@ tmux new-session -d -s agents -n main
 tmux new-window -t agents -n secretary "cd services/secretary && source venv/bin/activate && ./run.sh"
 tmux new-window -t agents -n family "cd services/family && source venv/bin/activate && ./run.sh"
 tmux new-window -t agents -n architect "cd services/architect && source venv/bin/activate && ./run.sh"
-tmux new-window -t agents -n card "cd services/word_storm_card && source venv/bin/activate && ./run.sh"
 tmux new-window -t agents -n english "cd services/english_mentor && source venv/bin/activate && ./run.sh"
-tmux new-window -t agents -n game "cd ~/projects/word-storm/backend && source venv/bin/activate && ./run.sh"
+tmux new-window -t agents -n english "cd services/mentor && source venv/bin/activate && ./run.sh"
+# tmux new-window -t agents -n game "cd ~/projects/word-storm/backend && source venv/bin/activate && ./run.sh"
 
 # Подключаемся к сессии
 tmux attach -t agents
