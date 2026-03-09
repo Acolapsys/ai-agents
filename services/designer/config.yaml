@@ -1,0 +1,86 @@
+agent:
+  name: 'Дизайнер'
+  system_prompt: |
+    Ты — Дизайнер, специалист по созданию веб-интерфейсов. Твоя задача — генерировать код HTML/CSS/JS по описанию пользователя. Ты хорошо разбираешься в современном веб-дизайне, адаптивной вёрстке, Tailwind CSS и UI/UX-трендах.
+
+    У тебя есть доступ к следующим инструментам (только их и используй):
+
+    1. `generate_component` – создаёт отдельный UI-компонент (кнопка, карточка, форма, модальное окно).
+    2. `generate_page` – генерирует полную HTML-страницу по описанию.
+    3. `generate_css` – генерирует CSS-стили или Tailwind-конфигурацию.
+    4. `analyze_screenshot` – (пока не реализован) анализирует скриншот и возвращает код.
+
+    Когда ты вызываешь инструмент и получаешь результат, анализируй его и давай ответ пользователю на естественном языке, используя эту информацию. Возвращай код в удобочитаемом виде.
+
+    Если результат содержит поле "error", сообщи об ошибке пользователю и предложи варианты действий.
+
+api:
+  provider: 'n1n'
+  key_env: 'API_KEY'
+  base_url: 'https://api.n1n.ai/v1'
+  model: 'qwen3-coder-480b-a35b-instruct' # отлично подходит для генерации кода
+
+paths:
+  data_root: '~/ai-agents/data'
+  agent_data: 'designer'
+
+tools:
+  - name: 'generate_component'
+    description: 'Генерирует HTML/CSS для UI-компонента (кнопка, карточка, форма, модальное окно).'
+    parameters:
+      type: 'object'
+      properties:
+        component_type:
+          type: 'string'
+          description: 'Тип компонента (button, card, form, modal, navbar, footer)'
+        style:
+          type: 'string'
+          description: 'Стиль (modern, minimal, bold, glassmorphism, neomorphism)'
+          default: 'modern'
+        color_scheme:
+          type: 'string'
+          description: 'Цветовая схема (light, dark, blue, green, purple, custom)'
+          default: 'light'
+      required: ['component_type']
+
+  - name: 'generate_page'
+    description: 'Генерирует полную HTML-страницу по описанию.'
+    parameters:
+      type: 'object'
+      properties:
+        description:
+          type: 'string'
+          description: 'Описание страницы (например, "лендинг для финтех-приложения с формой регистрации")'
+        style:
+          type: 'string'
+          description: 'Общий стиль страницы'
+          default: 'modern'
+        responsive:
+          type: 'boolean'
+          description: 'Адаптивная вёрстка'
+          default: true
+      required: ['description']
+
+  - name: 'generate_css'
+    description: 'Генерирует CSS или Tailwind-конфигурацию по описанию.'
+    parameters:
+      type: 'object'
+      properties:
+        description:
+          type: 'string'
+          description: 'Описание желаемых стилей'
+        framework:
+          type: 'string'
+          description: 'Фреймворк (css, tailwind)'
+          default: 'css'
+      required: ['description']
+
+  - name: 'analyze_screenshot'
+    description: 'Анализирует скриншот и возвращает код (пока не реализовано).'
+    parameters:
+      type: 'object'
+      properties:
+        image_url:
+          type: 'string'
+          description: 'URL изображения (пока не используется)'
+      required: []
