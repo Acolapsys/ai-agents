@@ -45,7 +45,7 @@ if prompt := st.chat_input("Введите сообщение..."):
                 response = requests.post(
                     f"http://localhost:{port}/chat",
                     json={"message": prompt, "user_id": "streamlit", "chat_id": "web"},
-                    timeout=60  # увеличиваем таймаут
+                    timeout=120  # увеличиваем таймаут
                 )
                 response.raise_for_status()
                 answer = response.json().get("response", "Нет ответа")
