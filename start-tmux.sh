@@ -12,7 +12,9 @@ tmux new-window -t agents -n secretary "cd services/secretary && source venv/bin
 tmux new-window -t agents -n family "cd services/family && source venv/bin/activate && ./run.sh"
 tmux new-window -t agents -n architect "cd services/architect && source venv/bin/activate && ./run.sh"
 tmux new-window -t agents -n english "cd services/english_mentor && source venv/bin/activate && ./run.sh"
-tmux new-window -t agents -n english "cd services/mentor && source venv/bin/activate && ./run.sh"
+tmux new-window -t agents -n mentor "cd services/mentor && source venv/bin/activate && ./run.sh"
+tmux new-window -t agents -n designer "cd services/designer && source venv/bin/activate && ./run.sh"
+tmux new-window -t agents -n gateway "cd services/gateway && source venv/bin/activate && ./run.sh"
 # tmux new-window -t agents -n game "cd ~/projects/word-storm/backend && source venv/bin/activate && ./run.sh"
 
 # Подключаемся к сессии

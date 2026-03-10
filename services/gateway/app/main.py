@@ -25,7 +25,7 @@ AGENTS = {
     "architect": "http://localhost:8005",
     "english_mentor": "http://localhost:8004",
 }
-
+0
 class ChatRequest(BaseModel):
     message: str
     user_id: Optional[str] = "web_user"
