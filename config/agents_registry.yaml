@@ -3,23 +3,29 @@ agents:
     name: 'Дизайнер'
     description: 'Генерирует UI-компоненты и дизайн'
     run_script: 'designer/run.sh'
+    port: 8007
   mentor:
     name: 'Ментор'
     description: 'Помогает с кодом и обучением'
     run_script: 'mentor/run.sh'
+    port: 8006
   secretary:
     name: 'Секретарь'
     description: 'Заметки, список покупок, задачи'
     run_script: 'secretary/run.sh'
+    port: 8002
   family:
     name: 'Семейный советник'
     description: 'Помогает с семейными вопросами'
     run_script: 'family/run.sh'
+    port: 8003
   architect:
     name: 'Архитектор'
     description: 'Управление агентами и реестр'
     run_script: 'architect/run.sh'
+    port: 8005
   english_mentor:
     name: 'Учитель английского'
     description: 'Персональный учитель языка'
     run_script: 'english_mentor/run.sh'
+    port: 8004

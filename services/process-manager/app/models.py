@@ -8,3 +8,4 @@ class AgentInfo(BaseModel):
     run_script: str               # путь к run.sh относительно AGENTS_ROOT/agent_id
     status: str = "stopped"       # running, stopped, error
     pid: Optional[int] = None
+    port: Optional[int] = None

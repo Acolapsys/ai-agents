@@ -19,7 +19,6 @@ class ProcessManager:
         """Загружает список агентов из конфига или реестра архитектора"""
         # Вариант 1: читать из YAML (пока упростим)
         config_file = Config.AGENTS_CONFIG
-        print('1', config_file, Config)
         if config_file.exists():
             with open(config_file, 'r') as f:
                 data = yaml.safe_load(f)
@@ -29,7 +28,8 @@ class ProcessManager:
                         name=info.get('name', agent_id),
                         description=info.get('description', ''),
                         run_script=info.get('run_script', f"{agent_id}/run.sh"),
-                        status='stopped'
+                        status='stopped',
+                        port=info.get('port'),
                     )
         else:
             # Заглушка для теста
