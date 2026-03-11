@@ -1,0 +1,25 @@
+agents:
+  designer:
+    name: 'Дизайнер'
+    description: 'Генерирует UI-компоненты и дизайн'
+    run_script: 'designer/run.sh'
+  mentor:
+    name: 'Ментор'
+    description: 'Помогает с кодом и обучением'
+    run_script: 'mentor/run.sh'
+  secretary:
+    name: 'Секретарь'
+    description: 'Заметки, список покупок, задачи'
+    run_script: 'secretary/run.sh'
+  family:
+    name: 'Семейный советник'
+    description: 'Помогает с семейными вопросами'
+    run_script: 'family/run.sh'
+  architect:
+    name: 'Архитектор'
+    description: 'Управление агентами и реестр'
+    run_script: 'architect/run.sh'
+  english_mentor:
+    name: 'Учитель английского'
+    description: 'Персональный учитель языка'
+    run_script: 'english_mentor/run.sh'
