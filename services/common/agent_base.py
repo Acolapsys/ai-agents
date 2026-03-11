@@ -1,16 +1,12 @@
 import os
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import yaml
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Callable
-# from dotenv import load_dotenv
 from openai import AsyncOpenAI
-
-
-# env_path = Path(__file__).parent.parent.parent / '.env'
-# load_dotenv(dotenv_path=env_path)
 
 class BaseAgent:
     def __init__(self, config_path: str):
@@ -75,7 +71,7 @@ class BaseAgent:
 
         # Файловый логгер
         log_file = self.agent_data_path / "agent.log"
-        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        file_handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8')
         file_handler.setFormatter(logging.Formatter(log_format))
         self.logger.addHandler(file_handler)
 
@@ -215,7 +211,7 @@ class BaseAgent:
                     max_tokens=4096,
                 )
                 final_answer = final_response.choices[0].message.content
-                self.logger.info(f"Финальный ответ получен: {final_answer}")
+                self.logger.info(f"Финальный ответ получен")
             except Exception as e:
                 self.logger.error(f"Ошибка при генерации финального ответа: {e}")
                 final_answer = "Извините, не удалось сформировать ответ после вызова инструментов."

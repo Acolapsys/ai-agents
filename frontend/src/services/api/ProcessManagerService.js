@@ -26,6 +26,11 @@ class ProcessManagerService extends ApiService {
     const { data } = await this.post(`/agents/${agentId}/restart`, {})
     return data
   }
+
+  async getLogs(agentId, limit = 100) {
+    const { data } = await this.get(`/agents/${agentId}/logs?limit=${limit}`)
+    return data
+  }
 }
 
 export default new ProcessManagerService()

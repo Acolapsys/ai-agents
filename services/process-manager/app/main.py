@@ -45,3 +45,10 @@ async def restart_agent(agent_id: str):
     if manager.restart_agent(agent_id):
         return {"status": "restarted"}
     raise HTTPException(500, "Failed to restart agent")
+
+@app.get("/agents/{agent_id}/logs")
+async def get_agent_logs(agent_id: str, limit: int = 50, offset: int = 0):
+    result = manager.read_agent_log(agent_id, limit, offset)
+    if not result.get("success"):
+        raise HTTPException(status_code=404, detail=result.get("error", "Log not found"))
+    return result

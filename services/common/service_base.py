@@ -67,17 +67,6 @@ def create_agent_app(
 
     # Получаем токен Telegram
     token = os.environ.get(telegram_token_env)
-    # if not token:
-    #     # Попробуем загрузить из старого места (config/tokens.env) как запасной вариант
-    #     token_file = Path.home() / 'ai-agents' / 'config' / 'tokens.env'
-    #     if token_file.exists():
-    #         with open(token_file, 'r') as f:
-    #             for line in f:
-    #                 if line.startswith(f'{telegram_token_env}='):
-    #                     token = line.strip().split('=', 1)[1].strip()
-    #                     break
-    #     if not token:
-    #         logger.warning(f"Telegram token {telegram_token_env} not found. Bot will not start.")
 
     # Создаём экземпляр агента
     agent = agent_class()

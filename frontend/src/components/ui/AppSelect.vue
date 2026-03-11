@@ -12,7 +12,13 @@
       v-bind="$attrs"
     >
       <option v-if="placeholder" value="" disabled selected>{{ placeholder }}</option>
-      <slot />
+      <option
+        v-for="option in options"
+        :key="option.value"
+        :value="option.value"
+      >
+        {{ option.label }}
+      </option>
     </select>
   </div>
 </template>
@@ -25,7 +31,8 @@ defineProps({
   label: String,
   placeholder: String,
   disabled: Boolean,
-  id: { type: String, default: () => useId() }
+  id: { type: String, default: () => useId() },
+  options: { type: Array, default: () => [] }
 })
 
 defineEmits(['update:modelValue'])

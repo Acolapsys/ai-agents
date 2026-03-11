@@ -15,6 +15,7 @@ tmux new-window -t agents -n english "cd services/english_mentor && source venv/
 tmux new-window -t agents -n mentor "cd services/mentor && source venv/bin/activate && ./run.sh"
 tmux new-window -t agents -n designer "cd services/designer && source venv/bin/activate && ./run.sh"
 tmux new-window -t agents -n gateway "cd services/gateway && source venv/bin/activate && ./run.sh"
+tmux new-window -t agents -n process-manager "cd services/process-manager && source venv/bin/activate && ./run.sh"
 # tmux new-window -t agents -n game "cd ~/projects/word-storm/backend && source venv/bin/activate && ./run.sh"
 
 # Подключаемся к сессии

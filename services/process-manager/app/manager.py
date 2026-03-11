@@ -116,3 +116,46 @@ class ProcessManager:
         for aid, agent in self.agents.items():
             agent.status = self.get_status(aid)
         return self.agents
+
+    def get_agent_log_path(self, agent_id: str) -> Path:
+        """Возвращает путь к файлу лога агента."""
+        # Основной путь: данные агента (совпадает с BaseAgent._setup_logging)
+        data_log = Path.home() / "ai-agents" / "data" / agent_id / "agent.log"
+        if data_log.exists():
+            return data_log
+        # Запасные пути для обратной совместимости
+        logs_log = Path.home() / "ai-agents" / "logs" / agent_id / "agent.log"
+        if logs_log.exists():
+            return logs_log
+        service_log = Config.AGENTS_ROOT / agent_id / "agent.log"
+        if service_log.exists():
+            return service_log
+        return None
+
+    def read_agent_log(self, agent_id: str, limit: int = 50, offset: int = 0) -> dict:
+        """
+        Читает последние строки из файла лога агента.
+        Возвращает словарь с полями:
+        - success: bool
+        - lines: список строк (последние lines)
+        - total: общее количество строк (если нужно)
+        - error: сообщение об ошибке (если success=False)
+        """
+        log_path = self.get_agent_log_path(agent_id)
+        if not log_path:
+            return {"success": False, "error": "Log file not found"}
+        try:
+            with open(log_path, 'r', encoding='utf-8') as f:
+                all_lines = f.readlines()
+            total = len(all_lines)
+            start = max(0, total - limit - offset)
+            end = total - offset
+            selected_lines = all_lines[start:end]
+            return {
+                "success": True,
+                "lines": selected_lines,
+                "total": total,
+                "filename": str(log_path)
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
