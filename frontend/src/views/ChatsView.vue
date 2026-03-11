@@ -4,7 +4,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
       <!-- Список агентов слева -->
-      <AppCard class="lg:col-span-1 flex flex-col">
+      <AppCard class="lg:col-span-1 flex flex-col h-full">
         <template #header>
           <div class="flex justify-between items-center">
             <span class="font-semibold text-charcoal-blue">Диалоги</span>
@@ -48,7 +48,7 @@
       </AppCard>
 
       <!-- Область сообщений справа -->
-      <AppCard class="lg:col-span-2 flex flex-col">
+      <AppCard class="lg:col-span-2 flex flex-col h-full">
         <template #header>
           <div class="flex justify-between items-center">
             <span v-if="selectedChat" class="font-semibold text-charcoal-blue">
@@ -75,7 +75,7 @@
           </div>
         </template>
 
-        <div v-if="selectedChat" class="flex flex-col flex-1 min-h-0">
+        <div  v-if="selectedChat"  class="flex flex-col flex-1 min-h-0 h-full">
           <!-- Контейнер для сообщений - занимает всё свободное место -->
           <div
             class="flex-1 overflow-y-auto space-y-4 p-4 bg-gray-50/50 rounded-lg custom-scrollbar"
@@ -149,7 +149,7 @@
           </div>
         </div>
 
-        <div v-else class="flex-1 flex items-center justify-center text-gray-500">
+        <div v-if="!selectedChat" class="flex-1 flex items-center justify-center text-gray-500">
           Выберите чат для начала общения
         </div>
       </AppCard>
