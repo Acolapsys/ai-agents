@@ -41,6 +41,16 @@ class ProcessManagerService extends ApiService {
       return { ok: false, error: e.message }
     }
   }
+
+  async startAll() {
+    const { data } = await this.post('/agents/start-all', {})
+    return data
+  }
+
+  async stopAll() {
+    const { data } = await this.post('/agents/stop-all', {})
+    return data
+  }
 }
 
 export default new ProcessManagerService()

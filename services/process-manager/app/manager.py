@@ -14,10 +14,10 @@ class ProcessManager:
     def __init__(self):
         self.agents: Dict[str, AgentInfo] = {}
         self._load_agents()
+        self._detect_running_agents()
 
     def _load_agents(self):
-        """Загружает список агентов из конфига или реестра архитектора"""
-        # Вариант 1: читать из YAML (пока упростим)
+        """Загружает список агентов из конфига."""
         config_file = Config.AGENTS_CONFIG
         if config_file.exists():
             with open(config_file, 'r') as f:
@@ -34,13 +34,32 @@ class ProcessManager:
         else:
             # Заглушка для теста
             self.agents = {
-                'designer': AgentInfo(id='designer', name='Дизайнер', run_script='designer/run.sh'),
-                'mentor': AgentInfo(id='mentor', name='Ментор', run_script='mentor/run.sh'),
-                'secretary': AgentInfo(id='secretary', name='Секретарь', run_script='secretary/run.sh'),
-                'family': AgentInfo(id='family', name='Семейный советник', run_script='family/run.sh'),
-                'architect': AgentInfo(id='architect', name='Архитектор', run_script='architect/run.sh'),
-                'english_mentor': AgentInfo(id='english_mentor', name='Учитель английского', run_script='english_mentor/run.sh'),
+                'designer': AgentInfo(id='designer', name='Дизайнер', run_script='designer/run.sh', port=8007),
+                'mentor': AgentInfo(id='mentor', name='Ментор', run_script='mentor/run.sh', port=8006),
+                'secretary': AgentInfo(id='secretary', name='Секретарь', run_script='secretary/run.sh', port=8002),
+                'family': AgentInfo(id='family', name='Семейный советник', run_script='family/run.sh', port=8003),
+                'architect': AgentInfo(id='architect', name='Архитектор', run_script='architect/run.sh', port=8005),
+                'english_mentor': AgentInfo(id='english_mentor', name='Учитель английского', run_script='english_mentor/run.sh', port=8004),
             }
+
+    def _detect_running_agents(self):
+        """Проверяет, не запущены ли агенты по портам и обновляет статусы."""
+        for agent_id, agent in self.agents.items():
+            if agent.port:
+                # Проверяем, занят ли порт
+                for conn in psutil.net_connections():
+                    if conn.status == 'LISTEN' and conn.laddr.port == agent.port:
+                        agent.pid = conn.pid
+                        agent.status = 'running'
+                        break
+            else:
+                # Если порт не указан, ищем процесс по имени (fallback)
+                for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                    if proc.info['cmdline'] and f"agents/{agent_id}" in ' '.join(proc.info['cmdline']):
+                        agent.pid = proc.info['pid']
+                        agent.status = 'running'
+                        break
+
 
     def _get_script_path(self, agent_id: str) -> Path:
         return Config.AGENTS_ROOT / agent_id / "run.sh"

@@ -56,3 +56,17 @@ async def get_agent_logs(agent_id: str, limit: int = 50, offset: int = 0):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+@app.post("/agents/start-all")
+async def start_all_agents():
+    results = {}
+    for agent_id in manager.agents:
+        results[agent_id] = manager.start_agent(agent_id)
+    return results
+
+@app.post("/agents/stop-all")
+async def stop_all_agents():
+    results = {}
+    for agent_id in manager.agents:
+        results[agent_id] = manager.stop_agent(agent_id)
+    return results
