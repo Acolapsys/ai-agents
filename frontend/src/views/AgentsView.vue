@@ -17,22 +17,16 @@
         <p class="text-gray-600 text-sm mb-2">{{ agent.description }}</p>
         <p v-if="agent.port" class="text-xs text-gray-400">Порт: {{ agent.port }}</p>
         <p v-if="agent.pid" class="text-xs text-gray-400">PID: {{ agent.pid }}</p>
+        <p v-if="agent.uptime" class="text-xs text-gray-400">
+          Время работы: {{ formatUptime(agent.uptime) }}
+        </p>
         <template #footer>
           <div class="flex space-x-2">
-            <AppButton
-              :variant="agent.status === 'running' ? 'secondary' : 'primary'"
-              size="sm"
-              :disabled="loadingStates[agent.id]"
-              @click="toggleAgent(agent)"
-            >
+            <AppButton :variant="agent.status === 'running' ? 'secondary' : 'primary'" size="sm"
+              :disabled="loadingStates[agent.id]" @click="toggleAgent(agent)">
               {{ loadingStates[agent.id] ? '...' : (agent.status === 'running' ? 'Выключить' : 'Включить') }}
             </AppButton>
-            <AppButton
-              variant="outline"
-              size="sm"
-              :disabled="loadingStates[agent.id]"
-              @click="restartAgent(agent)"
-            >
+            <AppButton variant="outline" size="sm" :disabled="loadingStates[agent.id]" @click="restartAgent(agent)">
               Перезагрузить
             </AppButton>
           </div>
@@ -53,7 +47,7 @@ const agentsList = ref([])
 const loading = ref(true)
 const loadingStates = ref({})
 
-async function fetchAgents() {
+const fetchAgents = async()  =>{
   loading.value = true
   try {
     const agentsObj = await processManager.getAgents()
@@ -65,7 +59,7 @@ async function fetchAgents() {
   }
 }
 
-async function toggleAgent(agent) {
+const toggleAgent = async (agent) => {
   loadingStates.value[agent.id] = true
   try {
     if (agent.status === 'running') {
@@ -81,7 +75,7 @@ async function toggleAgent(agent) {
   }
 }
 
-async function restartAgent(agent) {
+const restartAgent = async (agent) => {
   loadingStates.value[agent.id] = true
   try {
     await processManager.restartAgent(agent.id)
@@ -91,6 +85,14 @@ async function restartAgent(agent) {
   } finally {
     loadingStates.value[agent.id] = false
   }
+}
+
+const formatUptime = (seconds) => {
+  if (!seconds) return '—'
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  return [h, m, s].map(v => String(v).padStart(2, '0')).join(':')
 }
 
 onMounted(fetchAgents)

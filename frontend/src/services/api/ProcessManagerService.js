@@ -31,6 +31,16 @@ class ProcessManagerService extends ApiService {
     const { data } = await this.get(`/agents/${agentId}/logs?limit=${limit}`)
     return data
   }
+
+  async checkHealth() {
+    try {
+      const { data } = await this.get('/health')
+      return { ok: true, data }
+    } catch (e) {
+      logger.error('Process Manager health check failed', e)
+      return { ok: false, error: e.message }
+    }
+  }
 }
 
 export default new ProcessManagerService()

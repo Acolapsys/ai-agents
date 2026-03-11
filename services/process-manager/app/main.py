@@ -52,3 +52,7 @@ async def get_agent_logs(agent_id: str, limit: int = 50, offset: int = 0):
     if not result.get("success"):
         raise HTTPException(status_code=404, detail=result.get("error", "Log not found"))
     return result
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}

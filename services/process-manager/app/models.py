@@ -9,3 +9,4 @@ class AgentInfo(BaseModel):
     status: str = "stopped"       # running, stopped, error
     pid: Optional[int] = None
     port: Optional[int] = None
+    uptime: Optional[int] = None  # время работы в секундах

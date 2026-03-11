@@ -114,7 +114,17 @@ class ProcessManager:
     def list_agents(self) -> Dict[str, AgentInfo]:
         # обновляем статусы перед отправкой
         for aid, agent in self.agents.items():
+            print('1', self.agents.items(), aid, agent)
             agent.status = self.get_status(aid)
+            if agent.status == 'running' and agent.pid:
+                try:
+                    proc = psutil.Process(agent.pid)
+                    create_time = proc.create_time()
+                    agent.uptime = int(time.time() - create_time)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    agent.uptime = None
+            else:
+                agent.uptime = None
         return self.agents
 
     def get_agent_log_path(self, agent_id: str) -> Path:

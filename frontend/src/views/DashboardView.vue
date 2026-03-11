@@ -2,11 +2,31 @@
   <div>
     <h1 class="text-2xl font-bold text-charcoal-blue mb-6">Панель управления</h1>
 
-    <!-- Карточки статистики -->
+    <!-- Карточки статистики + статусы сервисов -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <AppCard v-for="stat in stats" :key="stat.label" class="text-center">
         <div class="text-3xl font-bold text-baltic-blue">{{ stat.value }}</div>
         <div class="text-sm text-gray-500">{{ stat.label }}</div>
+      </AppCard>
+
+      <!-- Статус Gateway -->
+      <AppCard class="text-center">
+        <div class="text-sm text-gray-500 mb-1">Gateway</div>
+        <div class="flex items-center justify-center space-x-2">
+          <span class="inline-block w-3 h-3 rounded-full" :class="gatewayStatus.ok ? 'bg-green-500' : 'bg-red-500'"></span>
+          <span class="font-medium">{{ gatewayStatus.ok ? 'Доступен' : 'Недоступен' }}</span>
+        </div>
+        <div v-if="gatewayStatus.error" class="text-xs text-red-600 mt-1">{{ gatewayStatus.error }}</div>
+      </AppCard>
+
+      <!-- Статус Process Manager -->
+      <AppCard class="text-center">
+        <div class="text-sm text-gray-500 mb-1">Process Manager</div>
+        <div class="flex items-center justify-center space-x-2">
+          <span class="inline-block w-3 h-3 rounded-full" :class="pmStatus.ok ? 'bg-green-500' : 'bg-red-500'"></span>
+          <span class="font-medium">{{ pmStatus.ok ? 'Доступен' : 'Недоступен' }}</span>
+        </div>
+        <div v-if="pmStatus.error" class="text-xs text-red-600 mt-1">{{ pmStatus.error }}</div>
       </AppCard>
     </div>
 
@@ -80,12 +100,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import AppCard from '@/components/ui/AppCard.vue'
 import AppBadge from '@/components/ui/AppBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import gatewayService from '@/services/api/GatewayService'
+import processManager from '@/services/api/ProcessManagerService'
 
-// Статистика
+// Статистика (пока мок)
 const stats = ref([
   { label: 'Активные агенты', value: 3 },
   { label: 'Задач в работе', value: 7 },
@@ -93,7 +115,11 @@ const stats = ref([
   { label: 'Расходы (мес.)', value: '$42.50' },
 ])
 
-// Последние логи
+// Состояние сервисов
+const gatewayStatus = ref({ ok: false })
+const pmStatus = ref({ ok: false })
+
+// Последние логи (мок)
 const recentLogs = ref([
   { id: 1, level: 'info', message: 'Агент "Семейный советник" запущен', time: '10:23' },
   { id: 2, level: 'warn', message: 'Высокая загрузка CPU', time: '10:25' },
@@ -101,19 +127,24 @@ const recentLogs = ref([
   { id: 4, level: 'info', message: 'Агент "Библиотекарь" синхронизирован', time: '10:30' },
 ])
 
-// Активные задачи
+// Активные задачи (мок)
 const activeTasks = ref([
   { id: 1, title: 'Настроить агента для Telegram', status: 'В работе' },
   { id: 2, title: 'Оптимизация логирования', status: 'В работе' },
   { id: 3, title: 'Дизайн карточки задачи', status: 'Новые' },
 ])
 
-// Состояние агентов
+// Агенты (мок)
 const agents = ref([
-  { id: 1, name: 'Семейный советник', status: 'active' },
-  { id: 2, name: 'Библиотекарь', status: 'inactive' },
-  { id: 3, name: 'Telegram-помощник', status: 'active' },
+  { id: 'family', name: 'Семейный советник', status: 'active' },
+  { id: 'library', name: 'Библиотекарь', status: 'inactive' },
+  { id: 'telegram', name: 'Telegram-помощник', status: 'active' },
 ])
+
+async function checkServices() {
+  gatewayStatus.value = await gatewayService.checkHealth()
+  pmStatus.value = await processManager.checkHealth()
+}
 
 function toggleAgent(agent) {
   agent.status = agent.status === 'active' ? 'inactive' : 'active'
@@ -121,4 +152,10 @@ function toggleAgent(agent) {
 function restartAgent(agent) {
   alert(`Перезагрузка агента ${agent.name}`)
 }
+
+onMounted(() => {
+  checkServices()
+  // Можно добавить периодическую проверку, например, каждые 30 секунд
+  // setInterval(checkServices, 30000)
+})
 </script>
