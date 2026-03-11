@@ -120,16 +120,16 @@ class ProcessManager:
     def get_agent_log_path(self, agent_id: str) -> Path:
         """Возвращает путь к файлу лога агента."""
         # Основной путь: данные агента (совпадает с BaseAgent._setup_logging)
-        data_log = Path.home() / "ai-agents" / "data" / agent_id / "agent.log"
-        if data_log.exists():
-            return data_log
-        # Запасные пути для обратной совместимости
         logs_log = Path.home() / "ai-agents" / "logs" / agent_id / "agent.log"
         if logs_log.exists():
             return logs_log
-        service_log = Config.AGENTS_ROOT / agent_id / "agent.log"
-        if service_log.exists():
-            return service_log
+        # # Запасные пути для обратной совместимости
+        # data_log = Path.home() / "ai-agents" / "data" / agent_id / "agent.log"
+        # if data_log.exists():
+        #     return data_log
+        # service_log = Config.AGENTS_ROOT / agent_id / "agent.log"
+        # if service_log.exists():
+        #     return service_log
         return None
 
     def read_agent_log(self, agent_id: str, limit: int = 50, offset: int = 0) -> dict:

@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import time
 from logging.handlers import RotatingFileHandler
 import yaml
 from pathlib import Path
@@ -16,6 +17,9 @@ class BaseAgent:
 
         self.name = config['agent']['name']
         self.system_prompt = config['agent']['system_prompt']
+
+        # Определяем agent_id как имя папки сервиса (родительская папка конфига)
+        self.agent_id = Path(config_path).parent.name
 
         # Настройки API
         api_config = config['api']
@@ -60,20 +64,34 @@ class BaseAgent:
         # Логирование
         self.logger = logging.getLogger(self.name)
         self._setup_logging()
+        debug_mode = os.environ.get("DEBUG", "").lower() in ("1", "true", "yes")
+        if debug_mode:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
 
         # Загрузка истории
         self.conversations = self._load_conversations()
+        self.logger.info(f"🚀 Агент {self.name} инициализирован")
 
     def _setup_logging(self):
         """Настройка логирования в файл и консоль"""
         log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         logging.basicConfig(level=logging.INFO, format=log_format)
 
-        # Файловый логгер
-        log_file = self.agent_data_path / "agent.log"
-        file_handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8')
+        # Единая папка для логов
+        log_dir = Path.home() / "ai-agents" / "logs" / self.agent_id
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / "agent.log"
+
+        # Добавим ротацию, чтобы файл не рос бесконечно
+        file_handler = RotatingFileHandler(
+            log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8'
+        )
         file_handler.setFormatter(logging.Formatter(log_format))
         self.logger.addHandler(file_handler)
+
+        # Также выводим в консоль (уже настроено через basicConfig)
 
     def _register_tool_handlers(self):
         """Ищет в дочернем классе методы с именами, соответствующими инструментам"""
@@ -130,6 +148,8 @@ class BaseAgent:
         func_name = tool_call["function"]["name"]
         arguments = json.loads(tool_call["function"]["arguments"])
 
+        self.logger.info(f"🔧 Вызов инструмента {func_name} с аргументами: {arguments}")
+
         if func_name not in self.tool_handlers:
             result = json.dumps({
                 "error": "unknown_tool",
@@ -138,9 +158,10 @@ class BaseAgent:
         else:
             try:
                 result = await self.tool_handlers[func_name](**arguments)
+                self.logger.info(f"✅ Инструмент {func_name} выполнен успешно")
             except TypeError as e:
                 # Ошибка несоответствия аргументов
-                self.logger.error(f"Ошибка при выполнении {func_name}: {e}")
+                self.logger.error(f"❌ Ошибка выполнения {func_name}: {e}", exc_info=True)
                 result = json.dumps({
                     "error": "invalid_arguments",
                     "message": f"Ошибка при вызове инструмента: {str(e)}",
@@ -161,6 +182,9 @@ class BaseAgent:
     # --- Основной метод обработки сообщения ---
     async def process_message(self, message: str, user_id: str, chat_id: str) -> str:
         """Основной цикл: история -> вызов модели -> обработка tool calls -> финальный ответ"""
+        self.logger.info(f"📨 Входящее сообщение от {user_id}: {message[:50]}...")
+        start_time = time.time()
+
         history = self._get_history(chat_id)
 
         messages = [{"role": "system", "content": self.system_prompt}]
@@ -176,6 +200,8 @@ class BaseAgent:
                 temperature=0.7,
                 max_tokens=4096
             )
+            duration = time.time() - start_time
+            self.logger.info(f"✅ Модель ответила за {duration:.2f}с, токенов: {response.usage.total_tokens}")
         except Exception as e:
             self.logger.error(f"Ошибка вызова модели: {e}")
             return f"Извините, произошла ошибка при обращении к модели."
@@ -211,7 +237,9 @@ class BaseAgent:
                     max_tokens=4096,
                 )
                 final_answer = final_response.choices[0].message.content
-                self.logger.info(f"Финальный ответ получен")
+
+                duration = time.time() - start_time
+                self.logger.info(f"✅ Финальный ответ за {duration:.2f}с, токенов: {final_response.usage.total_tokens}")
             except Exception as e:
                 self.logger.error(f"Ошибка при генерации финального ответа: {e}")
                 final_answer = "Извините, не удалось сформировать ответ после вызова инструментов."
