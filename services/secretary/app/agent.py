@@ -12,7 +12,7 @@ class SecretaryAgent(BaseAgent):
     def __init__(self):
         config_path = Path(__file__).parent.parent / "config.yaml"
         super().__init__(config_path)
-        self.task_manager_url = os.environ.get('TASK_MANAGER_URL', 'http://localhost:8009')
+        self.task_manager_url = os.getenv('TASK_MANAGER_URL')
         self.logger.info(f"Loaded tools: {[t['name'] for t in self.tools]}")
 
     # --- Реализации инструментов ---
@@ -68,13 +68,14 @@ class SecretaryAgent(BaseAgent):
                 "message": f"Не удалось связаться с таск-трекером по адресу {self.task_manager_url}: {str(e)}"
             })
 
-    async def get_tasks(self, status: str = None, assignee: str = None) -> str:
-        """Получает список задач с фильтрацией."""
+    async def get_tasks(self, status: str = None, assignee: str = None, search: str = None) -> str:
         params = {}
         if status:
             params['status'] = status
         if assignee:
             params['assignee'] = assignee
+        if search:
+            params['search'] = search
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(f"{self.task_manager_url}/tasks", params=params) as resp:

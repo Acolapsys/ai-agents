@@ -38,9 +38,10 @@ def list_tasks(
     status: Optional[models.TaskStatus] = None,
     priority: Optional[models.TaskPriority] = None,
     assignee: Optional[str] = None,
+    search: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    tasks = crud.get_tasks(db, skip=skip, limit=limit, status=status, priority=priority, assignee=assignee)
+    tasks = crud.get_tasks(db, skip=skip, limit=limit, status=status, priority=priority, assignee=assignee, search=search)
     return tasks
 
 @app.post("/tasks", response_model=schemas.TaskInDB)
