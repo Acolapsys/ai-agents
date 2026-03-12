@@ -1,5 +1,8 @@
 # ~/ai-agents/services/secretary/app/agent.py
 import sys
+import aiohttp
+import os
+import json
 from pathlib import Path
 from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "common"))
@@ -9,6 +12,8 @@ class SecretaryAgent(BaseAgent):
     def __init__(self):
         config_path = Path(__file__).parent.parent / "config.yaml"
         super().__init__(config_path)
+        self.task_manager_url = os.environ.get('TASK_MANAGER_URL', 'http://localhost:8009')
+        self.logger.info(f"Loaded tools: {[t['name'] for t in self.tools]}")
 
     # --- Реализации инструментов ---
     async def save_note(self, content: str) -> str:
@@ -37,3 +42,47 @@ class SecretaryAgent(BaseAgent):
         with open(task_file, 'a', encoding='utf-8') as f:
             f.write(f"[ ] {task}\n")
         return f"Задача добавлена: {task}"
+
+    async def create_task(self, title: str, description: str = None, priority: str = 'medium') -> str:
+        """Создаёт задачу в таск-трекере."""
+        payload = {
+            'title': title,
+            'description': description,
+            'priority': priority,
+            'status': 'new',
+            'assignee': 'user'  # или можно брать из контекста
+        }
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"{self.task_manager_url}/tasks", json=payload) as resp:
+                    if resp.status in (200, 201):
+                        data = await resp.json()
+                        self.logger.info('1', data)
+                        return json.dumps({"status": "ok", "task_id": data['id'], "message": f"Задача '{title}' создана"})
+                    else:
+                        error_text = await resp.text()
+                        return json.dumps({"status": "error", "message": f"Ошибка создания задачи: {error_text}"})
+        except Exception as e:
+            return json.dumps({
+                "status": "error",
+                "message": f"Не удалось связаться с таск-трекером по адресу {self.task_manager_url}: {str(e)}"
+            })
+
+    async def get_tasks(self, status: str = None, assignee: str = None) -> str:
+        """Получает список задач с фильтрацией."""
+        params = {}
+        if status:
+            params['status'] = status
+        if assignee:
+            params['assignee'] = assignee
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.task_manager_url}/tasks", params=params) as resp:
+                    if resp.status == 200:
+                        tasks = await resp.json()
+                        return json.dumps({"status": "ok", "tasks": tasks})
+                    else:
+                        error_text = await resp.text()
+                        return json.dumps({"status": "error", "message": f"Ошибка получения задач: {error_text}"})
+        except Exception as e:
+            return json.dumps({"status": "error", "message": f"Не удалось связаться с таск-трекером: {str(e)}"})

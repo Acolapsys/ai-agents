@@ -25,7 +25,7 @@ const routes = [
   {
     path: '/tasks',
     name: 'tasks',
-    component: () => import('@/views/TasksView.vue') // ленивая загрузка
+    component: () => import('@/views/TasksView/index.vue') // ленивая загрузка
   },
   {
     path: '/stats',

@@ -133,7 +133,6 @@ class ProcessManager:
     def list_agents(self) -> Dict[str, AgentInfo]:
         # обновляем статусы перед отправкой
         for aid, agent in self.agents.items():
-            print('1', self.agents.items(), aid, agent)
             agent.status = self.get_status(aid)
             if agent.status == 'running' and agent.pid:
                 try:

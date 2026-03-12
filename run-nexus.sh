@@ -47,6 +47,9 @@ start_service "Process Manager" 8008 "services/process-manager"
 # Запускаем gateway (порт 8000)
 start_service "Gateway" 8000 "services/gateway"
 
+# Запускаем gateway (порт 8009)
+start_service "Task Manager" 8009 "services/task-manager"
+
 # Запускаем агентов (можно добавить по необходимости)
 # Например, дизайнер (порт 8007)
 # start_service "Designer Agent" 8007 "services/designer"

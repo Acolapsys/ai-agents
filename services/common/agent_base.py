@@ -190,18 +190,31 @@ class BaseAgent:
         messages = [{"role": "system", "content": self.system_prompt}]
         messages.extend(history)
         messages.append({"role": "user", "content": message})
+        self.logger.info(f"First call messages: {json.dumps(messages, ensure_ascii=False, default=str)}")
 
         try:
+            api_tools = None
+            if self.tools:
+                api_tools = [{"type": "function", "function": tool} for tool in self.tools]
+            self.logger.info(f"API tools: {json.dumps(api_tools, ensure_ascii=False, default=str)}")
+            force_tool = None
+            if 'создай задачу' in message.lower() or 'добавь задачу' in message.lower():
+                force_tool = {"type": "function", "function": {"name": "create_task"}}
+            self.logger.info(f"Force tool: {force_tool}")
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                tools=self.tools if self.tools else None,
-                tool_choice="auto" if self.tools else None,
+                tools=api_tools,
+                tool_choice=force_tool or ("auto" if api_tools else None),
                 temperature=0.7,
                 max_tokens=4096
             )
             duration = time.time() - start_time
             self.logger.info(f"✅ Модель ответила за {duration:.2f}с, токенов: {response.usage.total_tokens}")
+            if response.choices and response.choices[0].message.tool_calls:
+                self.logger.info(f"Tool calls: {response.choices[0].message.tool_calls}")
+            else:
+                self.logger.info("No tool calls in response")
         except Exception as e:
             self.logger.error(f"Ошибка вызова модели: {e}")
             return f"Извините, произошла ошибка при обращении к модели."
