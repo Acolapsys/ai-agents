@@ -4,7 +4,16 @@ from . import models, schemas
 def get_task(db: Session, task_id: int):
     return db.query(models.Task).filter(models.Task.id == task_id).first()
 
-def get_tasks(db: Session, skip: int = 0, limit: int = 100, status: models.TaskStatus = None, priority: models.TaskPriority = None, assignee: str = None, search: str = None):
+def get_tasks(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    status: models.TaskStatus = None,
+    priority: models.TaskPriority = None,
+    assignee: str = None,
+    search: str = None,
+    project: str = None  # новый параметр
+):
     query = db.query(models.Task)
     if status:
         query = query.filter(models.Task.status == status)
@@ -16,6 +25,8 @@ def get_tasks(db: Session, skip: int = 0, limit: int = 100, status: models.TaskS
         query = query.filter(
             models.Task.title.contains(search) | models.Task.description.contains(search)
         )
+    if project:
+        query = query.filter(models.Task.project == project)
     return query.offset(skip).limit(limit).all()
 
 def create_task(db: Session, task: schemas.TaskCreate):

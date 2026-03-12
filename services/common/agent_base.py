@@ -51,6 +51,25 @@ class BaseAgent:
                 name = tool['name']
                 desc = tool.get('description', 'Нет описания')
                 tools_description += f"- `{name}`: {desc}\n"
+
+                # Добавляем описание параметров
+                params = tool.get('parameters', {})
+                properties = params.get('properties', {})
+                required = params.get('required', [])
+                if properties:
+                    tools_description += "  Параметры:\n"
+                    for param_name, param_info in properties.items():
+                        param_desc = param_info.get('description', '')
+                        param_type = param_info.get('type', 'string')
+                        # Отмечаем, обязателен ли параметр
+                        req_flag = "обязательно" if param_name in required else "опционально"
+                        tools_description += f"    - {param_name} ({param_type}, {req_flag}): {param_desc}\n"
+                # Если есть enum, тоже полезно показать
+                for param_name, param_info in properties.items():
+                    if 'enum' in param_info:
+                        enum_values = ', '.join(param_info['enum'])
+                        tools_description += f"      Возможные значения: {enum_values}\n"
+
             tools_description += "\nЕсли ты вызовешь несуществующий инструмент, агент вернёт ошибку. Проанализируй ошибку и попробуй другой инструмент или попроси уточнить пользователя."
 
             # Добавляем к существующему system_prompt
@@ -197,15 +216,16 @@ class BaseAgent:
             if self.tools:
                 api_tools = [{"type": "function", "function": tool} for tool in self.tools]
             self.logger.info(f"API tools: {json.dumps(api_tools, ensure_ascii=False, default=str)}")
-            force_tool = None
-            if 'создай задачу' in message.lower() or 'добавь задачу' in message.lower():
-                force_tool = {"type": "function", "function": {"name": "create_task"}}
-            self.logger.info(f"Force tool: {force_tool}")
+            # force_tool = None
+            # if 'создай задачу' in message.lower() or 'добавь задачу' in message.lower():
+            #     force_tool = {"type": "function", "function": {"name": "create_task"}}
+            # self.logger.info(f"Force tool: {force_tool}")
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 tools=api_tools,
-                tool_choice=force_tool or ("auto" if api_tools else None),
+                tool_choice="auto" if self.tools else None,
+                # tool_choice=force_tool or ("auto" if api_tools else None),
                 temperature=0.7,
                 max_tokens=4096
             )

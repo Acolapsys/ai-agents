@@ -14,6 +14,19 @@
       </div>
     </div>
 
+    <!-- Фильтры: проект -->
+    <div class="mb-4 flex gap-4 items-center">
+      <div class="w-64">
+        <AppSelect
+          v-model="selectedProject"
+          :options="projectOptions"
+          placeholder="Все проекты"
+          label="Проект"
+          @update:modelValue="fetchTasks"
+        />
+      </div>
+    </div>
+
     <div v-if="loading" class="flex justify-center py-8">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-baltic-blue"></div>
     </div>
@@ -39,6 +52,7 @@ import { ref, computed, onMounted } from 'vue'
 import TaskCard from './TaskCard.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import taskManager from '@/services/api/TaskManagerService'
 
 // Маппинг статусов
@@ -48,8 +62,17 @@ const statusList = [
   { value: 'done', label: 'Завершённые' },
 ]
 
+// Список проектов (пока статический, потом можно получать из API)
+const projectOptions = [
+  { value: '', label: 'Все проекты' },
+  { value: 'Nexus', label: 'Nexus' },
+  { value: 'WordStorm', label: 'WordStorm' },
+  { value: 'AI Agents', label: 'AI Agents' },
+]
+
 const tasks = ref([])
 const loading = ref(true)
+const selectedProject = ref(null)
 
 const tasksByStatus = computed(() => {
   const grouped = {}
@@ -62,10 +85,14 @@ const tasksByStatus = computed(() => {
   return grouped
 })
 
-const fetchTasks = async () => {
+async function fetchTasks() {
   loading.value = true
   try {
-    const data = await taskManager.getTasks()
+    const params = {}
+    if (selectedProject.value) {
+      params.project = selectedProject.value
+    }
+    const data = await taskManager.getTasks(params)
     tasks.value = data
   } catch (e) {
     console.error('Failed to load tasks', e)

@@ -9,6 +9,7 @@ class TaskBase(BaseModel):
     status: TaskStatus = TaskStatus.NEW
     priority: TaskPriority = TaskPriority.MEDIUM
     assignee: Optional[str] = None
+    project: Optional[str] = Field(None, max_length=100)  # новое поле
 
 class TaskCreate(TaskBase):
     pass
@@ -19,6 +20,7 @@ class TaskUpdate(BaseModel):
     status: Optional[TaskStatus] = None
     priority: Optional[TaskPriority] = None
     assignee: Optional[str] = None
+    project: Optional[str] = Field(None, max_length=100)
 
 class TaskInDB(TaskBase):
     id: int

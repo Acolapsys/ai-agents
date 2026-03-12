@@ -43,32 +43,28 @@ class SecretaryAgent(BaseAgent):
             f.write(f"[ ] {task}\n")
         return f"Задача добавлена: {task}"
 
-    async def create_task(self, title: str, description: str = None, priority: str = 'medium') -> str:
-        """Создаёт задачу в таск-трекере."""
+    async def create_task(self, title: str, description: str = None, priority: str = 'medium', project: str = None) -> str:
         payload = {
             'title': title,
             'description': description,
             'priority': priority,
             'status': 'new',
-            'assignee': 'user'  # или можно брать из контекста
+            'assignee': 'user'
         }
+        if project:
+            payload['project'] = project
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(f"{self.task_manager_url}/tasks", json=payload) as resp:
                     if resp.status in (200, 201):
                         data = await resp.json()
-                        self.logger.info('1', data)
-                        return json.dumps({"status": "ok", "task_id": data['id'], "message": f"Задача '{title}' создана"})
+                        return json.dumps({"status": "ok", "task_id": data['id'], "message": f"Задача '{title}' создана в проекте {project}" if project else f"Задача '{title}' создана"})
                     else:
                         error_text = await resp.text()
                         return json.dumps({"status": "error", "message": f"Ошибка создания задачи: {error_text}"})
         except Exception as e:
-            return json.dumps({
-                "status": "error",
-                "message": f"Не удалось связаться с таск-трекером по адресу {self.task_manager_url}: {str(e)}"
-            })
-
-    async def get_tasks(self, status: str = None, assignee: str = None, search: str = None) -> str:
+            return json.dumps({"status": "error", "message": f"Не удалось связаться с таск-трекером: {str(e)}"})
+    async def get_tasks(self, status: str = None, assignee: str = None, search: str = None, project: str = None) -> str:
         params = {}
         if status:
             params['status'] = status
@@ -76,6 +72,8 @@ class SecretaryAgent(BaseAgent):
             params['assignee'] = assignee
         if search:
             params['search'] = search
+        if project:
+            params['project'] = project
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(f"{self.task_manager_url}/tasks", params=params) as resp:
