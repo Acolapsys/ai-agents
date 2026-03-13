@@ -9,6 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict
 
+from dotenv import load_dotenv
+
+
 # Настройка логирования
 log_dir = Path.home() / "ai-agents" / "logs" / "gateway"
 log_dir.mkdir(parents=True, exist_ok=True)
@@ -26,6 +29,12 @@ logger.addHandler(file_handler)
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(console_handler)
+
+# Загружаем общий .env
+root_env = Path(__file__).parent.parent.parent / ".env"
+if root_env.exists():
+    load_dotenv(dotenv_path=root_env)
+    logger.info(f"Loaded root env from {root_env}")
 
 app = FastAPI(title="API Gateway for AI Agents")
 

@@ -49,16 +49,20 @@ def create_agent_app(
     :param env_file: путь к .env файлу (если None, ищет в папке сервиса)
     :return: FastAPI app
     """
-    # Определяем путь к .env (если не передан, ищем в папке на уровень выше от common)
+
+    # Загружаем общий .env из корня проекта
+    root_env = Path(__file__).parent.parent.parent / ".env"
+    if root_env.exists():
+        load_dotenv(dotenv_path=root_env)
+        logger.info(f"Loaded root env from {root_env}")
+
+    # Загружаем локальный .env сервиса
     if env_file is None:
-        # Предполагаем, что этот файл лежит в services/common, а .env — в services/<service>/
-        # Поднимаемся на два уровня вверх и спускаемся в папку сервиса
         current_dir = Path(__file__).parent.parent / service_name
         env_file = current_dir / ".env"
     else:
         env_file = Path(env_file)
 
-    # Загружаем переменные окружения
     if env_file.exists():
         load_dotenv(dotenv_path=env_file)
         logger.info(f"Loaded env from {env_file}")

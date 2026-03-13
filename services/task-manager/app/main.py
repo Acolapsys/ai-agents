@@ -6,6 +6,7 @@ from typing import List, Optional
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from dotenv import load_dotenv
 
 from . import crud, models, schemas
 from .database import SessionLocal, engine
@@ -31,6 +32,12 @@ logger.addHandler(console_handler)
 
 # Создаём таблицы в БД (если ещё нет)
 models.Base.metadata.create_all(bind=engine)
+
+# Загружаем общий .env
+root_env = Path(__file__).parent.parent.parent / ".env"
+if root_env.exists():
+    load_dotenv(dotenv_path=root_env)
+    logger.info(f"Loaded root env from {root_env}")
 
 app = FastAPI(title="Task Manager API")
 
