@@ -13,12 +13,12 @@ from .config import Config
 from .models import AgentInfo
 
 # Настройка логирования
-log_dir = Path.home() / "ai-agents" / "logs" / "gateway"
+log_dir = Path.home() / "ai-agents" / "logs" / "process-manager"
 log_dir.mkdir(parents=True, exist_ok=True)
-log_file = log_dir / "service.log"
+log_file = log_dir / "process-manager.log"
 
 # Создаём логгер
-logger = logging.getLogger("gateway")
+logger = logging.getLogger("process-manager")
 logger.setLevel(logging.INFO)
 
 # Хендлер для файла с ротацией

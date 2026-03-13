@@ -11,12 +11,12 @@ from . import crud, models, schemas
 from .database import SessionLocal, engine
 
 # Настройка логирования
-log_dir = Path.home() / "ai-agents" / "logs" / "gateway"
+log_dir = Path.home() / "ai-agents" / "logs" / "task-manager"
 log_dir.mkdir(parents=True, exist_ok=True)
 log_file = log_dir / "service.log"
 
 # Создаём логгер
-logger = logging.getLogger("gateway")
+logger = logging.getLogger("task-manager")
 logger.setLevel(logging.INFO)
 
 # Хендлер для файла с ротацией
