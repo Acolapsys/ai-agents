@@ -1,14 +1,31 @@
 import os
-import httpx
 import logging
-from fastapi import FastAPI, HTTPException, Request
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+import httpx
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 
 # Настройка логирования
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+log_dir = Path.home() / "ai-agents" / "logs" / "gateway"
+log_dir.mkdir(parents=True, exist_ok=True)
+log_file = log_dir / "service.log"
+
+# Создаём логгер
+logger = logging.getLogger("gateway")
+logger.setLevel(logging.INFO)
+
+# Хендлер для файла с ротацией
+file_handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8')
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
+
+# Также выводим в консоль (опционально)
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(console_handler)
 
 app = FastAPI(title="API Gateway for AI Agents")
 
@@ -77,5 +94,4 @@ async def get_agent_history(agent_name: str, chat_id: str, limit: int = 50):
             return response.json()
         except Exception as e:
             logger.error(f"Error fetching history for {agent_name}: {e}")
-            # Возвращаем пустой массив, чтобы фронт не падал
             return []

@@ -1,6 +1,8 @@
 import subprocess
 import psutil
 import signal
+import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Dict, Optional
 import yaml
@@ -10,11 +12,32 @@ import time
 from .config import Config
 from .models import AgentInfo
 
+# Настройка логирования
+log_dir = Path.home() / "ai-agents" / "logs" / "gateway"
+log_dir.mkdir(parents=True, exist_ok=True)
+log_file = log_dir / "service.log"
+
+# Создаём логгер
+logger = logging.getLogger("gateway")
+logger.setLevel(logging.INFO)
+
+# Хендлер для файла с ротацией
+file_handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8')
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
+
+# Также выводим в консоль (опционально)
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(console_handler)
+
+
 class ProcessManager:
     def __init__(self):
         self.agents: Dict[str, AgentInfo] = {}
         self._load_agents()
         self._detect_running_agents()
+        self.logger = logger
 
     def _load_agents(self):
         """Загружает список агентов из конфига."""
@@ -86,7 +109,8 @@ class ProcessManager:
             )
             self.agents[agent_id].pid = proc.pid
             return True
-        except Exception:
+        except Exception as e:
+            self.logger.error(f"Error starting agent {agent_id}: {e}")
             return False
 
     def stop_agent(self, agent_id: str) -> bool:
@@ -120,7 +144,7 @@ class ProcessManager:
               agent.pid = None
               return True
           except Exception as e:
-              print(f"Error stopping agent {agent_id}: {e}")
+              self.logger.error(f"Error stopping agent {agent_id}: {e}")
               return False
 
     def restart_agent(self, agent_id: str) -> bool:
@@ -171,6 +195,7 @@ class ProcessManager:
         """
         log_path = self.get_agent_log_path(agent_id)
         if not log_path:
+            self.logger.warning(f"Log file not found for {agent_id}")
             return {"success": False, "error": "Log file not found"}
         try:
             with open(log_path, 'r', encoding='utf-8') as f:
@@ -186,4 +211,5 @@ class ProcessManager:
                 "filename": str(log_path)
             }
         except Exception as e:
+            self.logger.error(f"Error reading agent log for {agent_id}: {e}")
             return {"success": False, "error": str(e)}

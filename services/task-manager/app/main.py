@@ -3,8 +3,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
+import logging
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+
 from . import crud, models, schemas
 from .database import SessionLocal, engine
+
+# Настройка логирования
+log_dir = Path.home() / "ai-agents" / "logs" / "gateway"
+log_dir.mkdir(parents=True, exist_ok=True)
+log_file = log_dir / "service.log"
+
+# Создаём логгер
+logger = logging.getLogger("gateway")
+logger.setLevel(logging.INFO)
+
+# Хендлер для файла с ротацией
+file_handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8')
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
+
+# Также выводим в консоль (опционально)
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(console_handler)
 
 # Создаём таблицы в БД (если ещё нет)
 models.Base.metadata.create_all(bind=engine)
@@ -62,6 +85,7 @@ def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
 def get_task(task_id: int, db: Session = Depends(get_db)):
     task = crud.get_task(db, task_id)
     if not task:
+        logger.error(f"Task not found for get {task_id}")
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
@@ -69,6 +93,7 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
 def update_task(task_id: int, task_update: schemas.TaskUpdate, db: Session = Depends(get_db)):
     task = crud.update_task(db, task_id, task_update)
     if not task:
+        logger.error(f"Task not found for put {task_id}")
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
@@ -76,5 +101,6 @@ def update_task(task_id: int, task_update: schemas.TaskUpdate, db: Session = Dep
 def delete_task(task_id: int, db: Session = Depends(get_db)):
     task = crud.delete_task(db, task_id)
     if not task:
+        logger.error(f"Task not found for delete {task_id}")
         raise HTTPException(status_code=404, detail="Task not found")
     return task
