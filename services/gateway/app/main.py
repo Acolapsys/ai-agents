@@ -1,19 +1,19 @@
 import os
 import logging
+import yaml
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict
 
 # Настройка логирования
 log_dir = Path.home() / "ai-agents" / "logs" / "gateway"
 log_dir.mkdir(parents=True, exist_ok=True)
 log_file = log_dir / "service.log"
 
-# Создаём логгер
 logger = logging.getLogger("gateway")
 logger.setLevel(logging.INFO)
 
@@ -37,9 +37,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # Конфигурация агентов (порты)
-AGENTS = {
+AGENTS_CONFIG = {
     "designer": "http://localhost:8007",
     "mentor": "http://localhost:8006",
     "secretary": "http://localhost:8002",
@@ -47,6 +46,37 @@ AGENTS = {
     "architect": "http://localhost:8005",
     "english_mentor": "http://localhost:8004",
 }
+
+# Загружаем конфигурацию агентов из YAML
+def load_agents_config() -> Dict[str, str]:
+    """Загружает список агентов из agents_registry.yaml и возвращает словарь {agent_id: base_url}."""
+    config_path = Path.home() / "ai-agents" / "config" / "agents_registry.yaml"
+    if not config_path.exists():
+        logger.error(f"Config file not found: {config_path}")
+        # Fallback для разработки (хардкод)
+        logger.warning("Using hardcoded fallback configuration")
+        return AGENTS_CONFIG
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+            agents = {}
+            for agent_id, info in data.get('agents', {}).items():
+                port = info.get('port')
+                if port:
+                    agents[agent_id] = f"http://localhost:{port}"
+                else:
+                    logger.warning(f"Agent {agent_id} has no port defined, skipping")
+            if not agents:
+                logger.error("No agents with valid port found in config")
+                return {}
+            logger.info(f"Loaded {len(agents)} agents from config: {list(agents.keys())}")
+            return agents
+    except Exception as e:
+        logger.error(f"Failed to load agents config: {e}")
+        return {}
+
+# Инициализируем конфигурацию
+AGENTS = load_agents_config()
 
 class ChatRequest(BaseModel):
     message: str
