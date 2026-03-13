@@ -285,13 +285,6 @@ const copyCodeToClipboard = async () => {
   }
 }
 
-const selectChat = (chat) => {
-  selectedChat.value = chat
-  // Сбрасываем счетчик непрочитанных при выборе чата
-  unreadCount.value[chat.id] = 0
-  scrollToBottom()
-}
-
 const clearChat = () => {
   if (selectedChat.value) {
     messagesByAgent.value[selectedChat.value.id] = []
@@ -372,6 +365,38 @@ const formatTime = (timestamp) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+const historyLoaded = ref({})
+
+const loadHistory = async (agentId) => {
+  try {
+    const history = await agentsService.getHistory(agentId, 'web', 50)
+    const messages = history.map(msg => ({
+      id: `hist-${Date.now()}-${Math.random()}`,
+      role: msg.role,
+      content: msg.content,
+      isMine: msg.role === 'user',
+      timestamp: msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now()
+    }))
+    messagesByAgent.value[agentId] = messages
+    historyLoaded.value[agentId] = true
+  } catch (e) {
+    console.error('Failed to load history', e)
+  } finally {
+    scrollToBottom()
+  }
+}
+
+const selectChat = async (chat) => {
+  selectedChat.value = chat
+  unreadCount.value[chat.id] = 0
+
+  if (!historyLoaded.value[chat.id]) {
+    await loadHistory(chat.id)
+  } else {
+    scrollToBottom()
+  }
 }
 
 // Автоматическая прокрутка при новых сообщениях

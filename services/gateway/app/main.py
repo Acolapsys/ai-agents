@@ -58,3 +58,15 @@ async def chat_with_agent(agent_name: str, request: ChatRequest):
 @app.get("/health")
 async def health():
     return {"status": "ok", "agents": list(AGENTS.keys())}
+
+@app.get("/history/{agent_name}")
+async def get_agent_history(agent_name: str, chat_id: str, limit: int = 50):
+    if agent_name not in AGENTS:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    agent_url = f"{AGENTS[agent_name]}/history"
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(agent_url, params={"chat_id": chat_id, "limit": limit}, timeout=30.0)
+            return response.json()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))

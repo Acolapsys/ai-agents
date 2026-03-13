@@ -15,6 +15,18 @@ class AgentsService extends ApiService {
     return data
   }
 
+  async getHistory(agentId, chatId = 'web', limit = 50) {
+    try {
+      const { data } = await this.get(`/history/${agentId}`, {
+        params: { chat_id: chatId, limit }
+      })
+      return data
+    } catch (e) {
+      logger.error('Failed to load chat history', e)
+      return []
+    }
+  }
+
   async getAgents() {
     // пока мок, потом заменим на реальный вызов
     return [

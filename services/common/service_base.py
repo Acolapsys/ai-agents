@@ -112,4 +112,14 @@ def create_agent_app(
             # Можно вернуть 500, но для Telegram-бота лучше отдать текст ошибки
             return ChatResponse(response=f"Произошла внутренняя ошибка: {str(e)}")
 
+    @app.get("/history")
+    async def get_history(chat_id: str, limit: int = 50):
+        """
+        Возвращает историю сообщений для указанного chat_id.
+        По умолчанию последние 50 сообщений.
+        """
+        history = agent._get_history(chat_id, limit)
+        return history
+
+
     return app
