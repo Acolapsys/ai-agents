@@ -1,10 +1,10 @@
 <template>
-  <div class="p-6 h-[calc(100vh-8rem)] flex flex-col">
+  <div class="p-6 h-[calc(100vh-8rem)] flex flex-col  overflow-hidden">
     <h1 class="text-2xl font-bold text-charcoal-blue mb-6">Чаты агентов</h1>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 overflow-hidden">
       <!-- Список агентов слева -->
-      <AppCard class="lg:col-span-1 flex flex-col h-full">
+      <AppCard class="lg:col-span-1 flex flex-col min-h-0">
         <template #header>
           <div class="flex justify-between items-center">
             <span class="font-semibold text-charcoal-blue">Диалоги</span>
@@ -14,17 +14,11 @@
 
         <div class="flex-1 overflow-y-auto">
           <div class="space-y-2">
-            <div
-              v-for="agent in agents"
-              :key="agent.id"
-              class="p-3 rounded-lg cursor-pointer transition-all duration-200"
-              :class="
-                selectedChat?.id === agent.id
-                  ? 'bg-sky-reflection/20 border-l-4 border-baltic-blue'
-                  : 'hover:bg-gray-100'
-              "
-              @click="selectChat(agent)"
-            >
+            <div v-for="agent in agents" :key="agent.id"
+              class="p-3 rounded-lg cursor-pointer transition-all duration-200" :class="selectedChat?.id === agent.id
+                ? 'bg-sky-reflection/20 border-l-4 border-baltic-blue'
+                : 'hover:bg-gray-100'
+                " @click="selectChat(agent)">
               <div class="flex items-center">
                 <div class="w-8 h-8 rounded-full bg-baltic-blue/10 flex items-center justify-center mr-3">
                   <span class="text-baltic-blue text-sm">🤖</span>
@@ -35,10 +29,8 @@
                     {{ getLastMessage(agent.id) || 'Начните диалог...' }}
                   </div>
                 </div>
-                <div
-                  v-if="unreadCount[agent.id]"
-                  class="w-5 h-5 rounded-full bg-baltic-blue flex items-center justify-center ml-2"
-                >
+                <div v-if="unreadCount[agent.id]"
+                  class="w-5 h-5 rounded-full bg-baltic-blue flex items-center justify-center ml-2">
                   <span class="text-white text-xs">{{ unreadCount[agent.id] }}</span>
                 </div>
               </div>
@@ -47,114 +39,65 @@
         </div>
       </AppCard>
 
-      <!-- Область сообщений справа -->
-      <AppCard class="lg:col-span-2 flex flex-col h-full">
+      <!-- Правая колонка (чат) -->
+      <AppCard class="lg:col-span-2 flex flex-col min-h-0">
+        <!-- Заголовок (без изменений) -->
         <template #header>
           <div class="flex justify-between items-center">
-            <span v-if="selectedChat" class="font-semibold text-charcoal-blue">
-              {{ selectedChat.name }}
-            </span>
+            <span v-if="selectedChat" class="font-semibold text-charcoal-blue">{{ selectedChat.name }}</span>
             <span v-else class="text-gray-500">Выберите чат</span>
-
             <div v-if="selectedChat" class="flex space-x-2">
-              <button
-                class="p-1 rounded hover:bg-gray-100"
-                @click="copyCodeToClipboard"
-                title="Копировать код в буфер обмена"
-              >
-                📋
-              </button>
-              <button
-                class="p-1 rounded hover:bg-gray-100"
-                @click="clearChat"
-                title="Очистить диалог"
-              >
-                🗑️
-              </button>
+              <button class="p-1 rounded hover:bg-gray-100" @click="copyCodeToClipboard"
+                title="Копировать код">📋</button>
+              <button class="p-1 rounded hover:bg-gray-100" @click="clearChat" title="Очистить диалог">🗑️</button>
             </div>
           </div>
         </template>
 
-        <div  v-if="selectedChat"  class="flex flex-col flex-1 min-h-0 h-full">
-          <!-- Контейнер для сообщений - занимает всё свободное место -->
-          <div
-            class="flex-1 overflow-y-auto space-y-4 p-4 bg-gray-50/50 rounded-lg custom-scrollbar"
-            ref="messagesContainerRef"
-          >
-            <div
-              v-if="currentMessages.length === 0"
-              class="flex items-center justify-center h-full text-gray-500"
-            >
-              Начните диалог с {{ selectedChat.name }}
-            </div>
-
-            <div
-              v-for="msg in currentMessages"
-              :key="msg.id"
-              class="flex"
-              :class="msg.isMine ? 'justify-end' : 'justify-start'"
-            >
-              <div
-                class="max-w-[80%] p-3 rounded-2xl shadow-sm relative"
-                :class="
-                  msg.isMine
-                    ? 'bg-baltic-blue text-white rounded-br-none'
-                    : 'bg-white text-charcoal-blue border border-gray-200 rounded-bl-none'
-                "
-              >
-                <div
-                  v-if="containsCode(msg.content)"
-                  class="absolute top-2 right-2"
-                >
-                  <button
-                    @click="copyMessageCode(msg.content)"
-                    class="text-xs p-1 rounded hover:bg-black/10"
-                    :title="getCopyButtonTitle(msg.content)"
-                  >
-                    📋
-                  </button>
-                </div>
-
-                <div
-                  v-html="renderMarkdown(msg.content)"
-                  class="prose prose-sm max-w-none"
-                  :class="msg.isMine ? 'prose-invert' : ''"
-                />
-                <div
-                  class="text-xs mt-1"
-                  :class="msg.isMine ? 'text-baltic-blue/70' : 'text-gray-500'"
-                >
-                  {{ formatTime(msg.timestamp) }}
-                </div>
+        <!-- Основное содержимое (прокручивается) -->
+        <div v-if="selectedChat" class="flex-1 overflow-y-auto space-y-4 p-4 bg-gray-50/50 rounded-lg custom-scrollbar"
+          ref="messagesContainerRef">
+          <div v-if="currentMessages.length === 0" class="flex items-center justify-center h-full text-gray-500">
+            Начните диалог с {{ selectedChat.name }}
+          </div>
+          <div v-for="msg in currentMessages" :key="msg.id" class="flex"
+            :class="msg.isMine ? 'justify-end' : 'justify-start'">
+            <!-- карточка сообщения (без изменений) -->
+            <div class="max-w-[80%] p-3 rounded-2xl shadow-sm relative"
+              :class="msg.isMine ? 'bg-baltic-blue text-white rounded-br-none' : 'bg-white text-charcoal-blue border border-gray-200 rounded-bl-none'">
+              <div v-if="containsCode(msg.content)" class="absolute top-2 right-2">
+                <button @click="copyMessageCode(msg.content)" class="text-xs p-1 rounded hover:bg-black/10"
+                  :title="getCopyButtonTitle(msg.content)">📋</button>
               </div>
-            </div>
-
-            <div
-              v-if="loadingByAgent[selectedChat?.id]"
-              class="flex justify-start"
-            >
-              <div class="bg-white text-charcoal-blue rounded-2xl px-4 py-3 border border-gray-200 rounded-bl-none">
-                <span class="typing-indicator">печатает</span>
+              <div v-html="renderMarkdown(msg.content)" class="prose prose-sm max-w-none"
+                :class="msg.isMine ? 'prose-invert' : ''" />
+              <div class="text-xs mt-1" :class="msg.isMine ? 'text-baltic-blue/70' : 'text-gray-500'">
+                {{ formatTime(msg.timestamp) }}
               </div>
             </div>
           </div>
-
-          <!-- Поле ввода - всегда внизу -->
-          <div class="border-t border-gray-100 p-4">
-            <ChatInput
-              v-model="newMessage"
-              @send="sendMessage"
-              :disabled="!selectedChat || loadingByAgent[selectedChat?.id]"
-            />
+          <div v-if="loadingByAgent[selectedChat?.id]" class="flex justify-start">
+            <div class="bg-white text-charcoal-blue rounded-2xl px-4 py-3 border border-gray-200 rounded-bl-none">
+              <span class="typing-indicator">печатает</span>
+            </div>
           </div>
         </div>
 
-        <div v-if="!selectedChat" class="flex-1 flex items-center justify-center text-gray-500">
+        <!-- Если чат не выбран — центрированное сообщение (тоже внутри основного слота) -->
+        <div v-else class="flex-1 flex items-center justify-center text-gray-500">
           Выберите чат для начала общения
         </div>
+
+        <!-- Футер с полем ввода (фиксирован внизу) -->
+        <template #footer>
+          <div class="border-t border-gray-100 p-4">
+            <ChatInput v-model="newMessage" @send="sendMessage"
+              :disabled="!selectedChat || loadingByAgent[selectedChat?.id]" />
+          </div>
+        </template>
       </AppCard>
     </div>
-  </div>
+    </div>
 </template>
 
 <script setup>
@@ -176,7 +119,7 @@ const md = new MarkdownIt({
           hljs.highlight(str, { language: lang }).value +
           '</code></pre>'
         )
-      } catch (__) {}
+      } catch (__) { }
     }
     return (
       '<pre class="hljs rounded-lg"><code>' + md.utils.escapeHtml(str) + '</code></pre>'
@@ -416,9 +359,17 @@ onMounted(() => {
 }
 
 @keyframes typing {
-  0% { content: '.'; }
-  33% { content: '..'; }
-  66% { content: '...'; }
+  0% {
+    content: '.';
+  }
+
+  33% {
+    content: '..';
+  }
+
+  66% {
+    content: '...';
+  }
 }
 
 .custom-scrollbar::-webkit-scrollbar {
