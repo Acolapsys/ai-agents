@@ -12,7 +12,7 @@ def get_tasks(
     priority: models.TaskPriority = None,
     assignee: str = None,
     search: str = None,
-    project: str = None  # новый параметр
+    project: str = None
 ):
     query = db.query(models.Task)
     if status:
@@ -21,13 +21,27 @@ def get_tasks(
         query = query.filter(models.Task.priority == priority)
     if assignee:
         query = query.filter(models.Task.assignee == assignee)
-    if search:
-        query = query.filter(
-            models.Task.title.contains(search) | models.Task.description.contains(search)
-        )
     if project:
         query = query.filter(models.Task.project == project)
-    return query.offset(skip).limit(limit).all()
+
+    # Выполняем запрос без поиска по словам, получаем все задачи
+    all_tasks = query.all()
+
+    # Если есть поиск, фильтруем в Python
+    if search:
+        words = [word.strip().lower().replace('ё', 'е') for word in search.split() if word.strip()]
+        filtered = []
+        for task in all_tasks:
+            title = (task.title or '').lower().replace('ё', 'е')
+            description = (task.description or '').lower().replace('ё', 'е')
+            if all(word in title or word in description for word in words):
+                filtered.append(task)
+    else:
+        filtered = all_tasks
+
+    # Применяем пагинацию
+    paginated = filtered[skip:skip+limit]
+    return paginated
 
 def create_task(db: Session, task: schemas.TaskCreate):
     db_task = models.Task(**task.dict())

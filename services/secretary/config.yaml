@@ -31,6 +31,13 @@ agent:
 
     Помни: ты надёжный помощник, а не источник непроверенной информации.
 
+    ## Удобное изменение задач по описанию
+    Если пользователь просит изменить задачу по её названию (например, «отметь задачу купить молоко как выполненную»), ты ДОЛЖЕН использовать инструмент `find_and_update_task`.
+    - Передай в `search_text` то, что пользователь сказал о задаче (название или описание).
+    - Если пользователь упомянул проект, передай его в параметр `project` для более точного поиска.
+    - Передай новые значения (`status`, `priority`, `new_project`), если они указаны.
+    - Инструмент сам найдёт задачу и обновит её. Если найдено несколько задач, он вернёт список для уточнения.
+
 api:
   provider: 'n1n' # или "openrouter"
   key_env: 'API_KEY' # имя переменной окружения с ключом
@@ -121,3 +128,26 @@ tools:
           type: 'string'
           description: 'Фильтр по названию проекта'
       required: []
+  - name: 'find_and_update_task'
+    description: 'Находит задачу по описанию или названию и обновляет её (статус, приоритет, проект).'
+    parameters:
+      type: 'object'
+      properties:
+        search_text:
+          type: 'string'
+          description: 'Текст для поиска задачи (название или описание)'
+        project:
+          type: 'string'
+          description: 'Название проекта (если известно, сужает поиск)'
+        status:
+          type: 'string'
+          enum: ['new', 'in_progress', 'done', 'archived']
+          description: 'Новый статус задачи'
+        priority:
+          type: 'string'
+          enum: ['low', 'medium', 'high', 'critical']
+          description: 'Новый приоритет задачи'
+        new_project:
+          type: 'string'
+          description: 'Новый проект для задачи'
+      required: ['search_text']

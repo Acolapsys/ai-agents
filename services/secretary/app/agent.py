@@ -85,3 +85,63 @@ class SecretaryAgent(BaseAgent):
                         return json.dumps({"status": "error", "message": f"Ошибка получения задач: {error_text}"})
         except Exception as e:
             return json.dumps({"status": "error", "message": f"Не удалось связаться с таск-трекером: {str(e)}"})
+
+    async def find_and_update_task(self, search_text: str, project: str = None, status: str = None, priority: str = None, new_project: str = None) -> str:
+        """Находит задачу по описанию и обновляет её."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                # 1. Поиск задач
+                params = {"search": search_text}
+                if project:
+                    params["project"] = project
+
+                async with session.get(f"{self.task_manager_url}/tasks", params=params) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        return json.dumps({"status": "error", "message": f"Ошибка поиска: {error_text}"})
+                    tasks = await resp.json()
+
+                # 2. Анализ результатов
+                if not tasks:
+                    return json.dumps({"status": "error", "message": f"Задачи с описанием '{search_text}' не найдены."})
+
+                if len(tasks) > 1:
+                    # Несколько задач — возвращаем список для уточнения
+                    task_list = "\n".join([f"{t['id']}: {t['title']}" for t in tasks])
+                    return json.dumps({
+                        "status": "multiple_found",
+                        "message": f"Найдено несколько задач:\n{task_list}\nУточните, какую именно?",
+                        "tasks": tasks
+                    })
+
+                # 3. Одна задача — обновляем её
+                task = tasks[0]
+                task_id = task['id']
+
+                # Формируем payload для обновления
+                update_payload = {}
+                if status:
+                    update_payload['status'] = status
+                if priority:
+                    update_payload['priority'] = priority
+                if new_project:
+                    update_payload['project'] = new_project
+
+                if not update_payload:
+                    return json.dumps({"status": "error", "message": "Не указаны поля для обновления"})
+
+                async with session.put(f"{self.task_manager_url}/tasks/{task_id}", json=update_payload) as resp:
+                    if resp.status == 200:
+                        updated = await resp.json()
+                        return json.dumps({
+                            "status": "ok",
+                            "task": updated,
+                            "message": f"Задача '{task['title']}' обновлена."
+                        })
+                    else:
+                        error_text = await resp.text()
+                        return json.dumps({"status": "error", "message": f"Ошибка обновления: {error_text}"})
+
+        except Exception as e:
+            self.logger.error(f"Error in find_and_update_task: {e}")
+            return json.dumps({"status": "error", "message": f"Ошибка: {str(e)}"})
