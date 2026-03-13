@@ -1,9 +1,14 @@
 import os
 import httpx
+import logging
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="API Gateway for AI Agents")
 
@@ -25,7 +30,7 @@ AGENTS = {
     "architect": "http://localhost:8005",
     "english_mentor": "http://localhost:8004",
 }
-0
+
 class ChatRequest(BaseModel):
     message: str
     user_id: Optional[str] = "web_user"
@@ -51,8 +56,10 @@ async def chat_with_agent(agent_name: str, request: ChatRequest):
             )
             return response.json()
         except httpx.TimeoutException:
+            logger.warning(f"Timeout for agent {agent_name}")
             raise HTTPException(status_code=504, detail="Agent timeout")
         except Exception as e:
+            logger.error(f"Error calling agent {agent_name}: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
@@ -69,4 +76,6 @@ async def get_agent_history(agent_name: str, chat_id: str, limit: int = 50):
             response = await client.get(agent_url, params={"chat_id": chat_id, "limit": limit}, timeout=30.0)
             return response.json()
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error(f"Error fetching history for {agent_name}: {e}")
+            # Возвращаем пустой массив, чтобы фронт не падал
+            return []
