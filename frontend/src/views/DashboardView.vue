@@ -2,97 +2,82 @@
   <div>
     <h1 class="text-2xl font-bold text-charcoal-blue mb-6">Панель управления</h1>
 
-    <!-- Карточки статистики + статусы сервисов -->
+    <!-- Карточки статистики -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <AppCard v-for="stat in stats" :key="stat.label" class="text-center">
         <div class="text-3xl font-bold text-baltic-blue">{{ stat.value }}</div>
         <div class="text-sm text-gray-500">{{ stat.label }}</div>
       </AppCard>
+    </div>
 
-      <!-- Статус Gateway -->
+    <!-- Статусы сервисов (4 карточки в ряд) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <!-- Gateway -->
       <AppCard class="text-center">
         <div class="text-sm text-gray-500 mb-1">Gateway</div>
         <div class="flex items-center justify-center space-x-2">
           <span class="inline-block w-3 h-3 rounded-full" :class="gatewayStatus.ok ? 'bg-green-500' : 'bg-red-500'"></span>
           <span class="font-medium">{{ gatewayStatus.ok ? 'Доступен' : 'Недоступен' }}</span>
         </div>
-        <div v-if="gatewayStatus.error" class="text-xs text-red-600 mt-1">{{ gatewayStatus.error }}</div>
       </AppCard>
 
-      <!-- Статус Process Manager -->
+      <!-- Process Manager -->
       <AppCard class="text-center">
         <div class="text-sm text-gray-500 mb-1">Process Manager</div>
         <div class="flex items-center justify-center space-x-2">
           <span class="inline-block w-3 h-3 rounded-full" :class="pmStatus.ok ? 'bg-green-500' : 'bg-red-500'"></span>
           <span class="font-medium">{{ pmStatus.ok ? 'Доступен' : 'Недоступен' }}</span>
         </div>
-        <div v-if="pmStatus.error" class="text-xs text-red-600 mt-1">{{ pmStatus.error }}</div>
       </AppCard>
-    </div>
 
-    <!-- Две колонки: последние логи и задачи -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Последние логи -->
-      <AppCard>
-        <template #header>
-          <div class="flex justify-between items-center">
-            <span class="font-semibold text-charcoal-blue">Последние логи</span>
-            <router-link to="/logs" class="text-sm text-baltic-blue hover:underline">Все логи →</router-link>
-          </div>
-        </template>
-        <div class="space-y-2">
-          <div v-for="log in recentLogs" :key="log.id" class="flex items-center text-sm border-b border-sky-reflection/20 pb-1">
-            <AppBadge :variant="log.level === 'error' ? 'danger' : log.level === 'warn' ? 'warning' : 'info'" class="mr-2">
-              {{ log.level }}
-            </AppBadge>
-            <span class="text-gray-600 truncate flex-1">{{ log.message }}</span>
-            <span class="text-gray-400 text-xs">{{ log.time }}</span>
-          </div>
+      <!-- Task Manager -->
+      <AppCard class="text-center">
+        <div class="text-sm text-gray-500 mb-1">Task Manager</div>
+        <div class="flex items-center justify-center space-x-2">
+          <span class="inline-block w-3 h-3 rounded-full" :class="tmStatus.ok ? 'bg-green-500' : 'bg-red-500'"></span>
+          <span class="font-medium">{{ tmStatus.ok ? 'Доступен' : 'Недоступен' }}</span>
         </div>
       </AppCard>
 
-      <!-- Активные задачи -->
-      <AppCard>
-        <template #header>
-          <div class="flex justify-between items-center">
-            <span class="font-semibold text-charcoal-blue">Активные задачи</span>
-            <router-link to="/tasks" class="text-sm text-baltic-blue hover:underline">Все задачи →</router-link>
-          </div>
-        </template>
-        <div class="space-y-2">
-          <div v-for="task in activeTasks" :key="task.id" class="flex items-center justify-between">
-            <div class="flex items-center">
-              <span class="w-2 h-2 rounded-full mr-2" :class="{
-                'bg-honey-bronze': task.status === 'В работе',
-                'bg-sky-reflection': task.status === 'Новые',
-              }"></span>
-              <span class="text-sm text-charcoal-blue">{{ task.title }}</span>
-            </div>
-            <AppBadge :variant="task.status === 'В работе' ? 'warning' : 'info'">{{ task.status }}</AppBadge>
-          </div>
+      <!-- Агенты (общий статус) -->
+      <AppCard class="text-center">
+        <div class="text-sm text-gray-500 mb-1">Агенты</div>
+        <div class="flex items-center justify-center space-x-2">
+          <span class="inline-block w-3 h-3 rounded-full" :class="agentsStatusClass"></span>
+          <span class="font-medium">{{ agentsStatusText }}</span>
         </div>
       </AppCard>
     </div>
 
-    <!-- Состояние агентов -->
+    <!-- Лента важных событий -->
     <AppCard class="mt-6">
       <template #header>
-        <span class="font-semibold text-charcoal-blue">Состояние агентов</span>
+        <span class="font-semibold text-charcoal-blue">Важные события</span>
       </template>
-      <div class="space-y-3">
-        <div v-for="agent in agents" :key="agent.id" class="flex items-center justify-between">
-          <div class="flex items-center">
-            <span class="font-medium">{{ agent.name }}</span>
-            <AppBadge :variant="agent.status === 'active' ? 'success' : 'default'" class="ml-3">
-              {{ agent.status === 'active' ? 'Активен' : 'Неактивен' }}
-            </AppBadge>
-          </div>
-          <div class="flex space-x-2">
-            <AppButton size="sm" :variant="agent.status === 'active' ? 'secondary' : 'primary'" @click="toggleAgent(agent)">
-              {{ agent.status === 'active' ? 'Выключить' : 'Включить' }}
-            </AppButton>
-            <AppButton size="sm" variant="outline" @click="restartAgent(agent)">Перезагрузить</AppButton>
-          </div>
+      <div v-if="loadingEvents" class="flex justify-center py-4">
+        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-baltic-blue"></div>
+      </div>
+      <div v-else-if="importantEvents.length === 0" class="text-gray-500 italic py-4">
+        Нет важных событий
+      </div>
+      <div v-else class="space-y-2 max-h-80 overflow-y-auto pr-2">
+        <div
+          v-for="(event, idx) in importantEvents"
+          :key="idx"
+          class="flex items-start space-x-2 text-sm border-b border-sky-reflection/20 pb-2 last:border-0"
+        >
+          <span class="text-xs text-gray-400 whitespace-nowrap">{{ event.time }}</span>
+          <span class="flex-1 text-gray-700">{{ event.message }}</span>
+          <span
+            class="px-1.5 py-0.5 rounded text-xs font-medium"
+            :class="{
+              'bg-red-100 text-red-800': event.level === 'error',
+              'bg-yellow-100 text-yellow-800': event.level === 'warn',
+              'bg-blue-100 text-blue-800': event.level === 'info'
+            }"
+          >
+            {{ event.level }}
+          </span>
         </div>
       </div>
     </AppCard>
@@ -100,62 +85,109 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import AppCard from '@/components/ui/AppCard.vue'
-import AppBadge from '@/components/ui/AppBadge.vue'
-import AppButton from '@/components/ui/AppButton.vue'
 import gatewayService from '@/services/api/GatewayService'
 import processManager from '@/services/api/ProcessManagerService'
+import taskManager from '@/services/api/TaskManagerService'
+import agentsService from '@/services/api/AgentsService'
 
-// Статистика (пока мок)
-const stats = ref([
-  { label: 'Активные агенты', value: 3 },
-  { label: 'Задач в работе', value: 7 },
-  { label: 'Новых логов', value: 124 },
-  { label: 'Расходы (мес.)', value: '$42.50' },
-])
+// Данные
+const agents = ref([])
+const importantEvents = ref([])
+const loadingEvents = ref(false)
 
-// Состояние сервисов
+// Статусы сервисов
 const gatewayStatus = ref({ ok: false })
 const pmStatus = ref({ ok: false })
+const tmStatus = ref({ ok: false })
 
-// Последние логи (мок)
-const recentLogs = ref([
-  { id: 1, level: 'info', message: 'Агент "Семейный советник" запущен', time: '10:23' },
-  { id: 2, level: 'warn', message: 'Высокая загрузка CPU', time: '10:25' },
-  { id: 3, level: 'error', message: 'Ошибка подключения к Telegram', time: '10:27' },
-  { id: 4, level: 'info', message: 'Агент "Библиотекарь" синхронизирован', time: '10:30' },
-])
+// Загрузка агентов и задач для статистики
+const tasks = ref([])
 
-// Активные задачи (мок)
-const activeTasks = ref([
-  { id: 1, title: 'Настроить агента для Telegram', status: 'В работе' },
-  { id: 2, title: 'Оптимизация логирования', status: 'В работе' },
-  { id: 3, title: 'Дизайн карточки задачи', status: 'Новые' },
-])
-
-// Агенты (мок)
-const agents = ref([
-  { id: 'family', name: 'Семейный советник', status: 'active' },
-  { id: 'library', name: 'Библиотекарь', status: 'inactive' },
-  { id: 'telegram', name: 'Telegram-помощник', status: 'active' },
-])
-
-async function checkServices() {
-  gatewayStatus.value = await gatewayService.checkHealth()
-  pmStatus.value = await processManager.checkHealth()
-}
-
-function toggleAgent(agent) {
-  agent.status = agent.status === 'active' ? 'inactive' : 'active'
-}
-function restartAgent(agent) {
-  alert(`Перезагрузка агента ${agent.name}`)
-}
-
-onMounted(() => {
-  checkServices()
-  // Можно добавить периодическую проверку, например, каждые 30 секунд
-  // setInterval(checkServices, 30000)
+// Статистика
+const stats = computed(() => {
+  const activeAgents = agents.value.filter(a => a.status === 'running').length
+  const tasksInProgress = tasks.value.filter(t => t.status === 'in_progress').length
+  const totalTasks = tasks.value.length
+  return [
+    { label: 'Активные агенты', value: activeAgents },
+    { label: 'Задач в работе', value: tasksInProgress },
+    { label: 'Всего задач', value: totalTasks },
+    { label: 'Важных событий', value: importantEvents.value.length },
+  ]
 })
+
+// Общий статус агентов
+const agentsStatusClass = computed(() => {
+  const running = agents.value.filter(a => a.status === 'running').length
+  const total = agents.value.length
+  if (running === total) return 'bg-green-500'
+  if (running === 0) return 'bg-red-500'
+  return 'bg-yellow-500'
+})
+const agentsStatusText = computed(() => {
+  const running = agents.value.filter(a => a.status === 'running').length
+  const total = agents.value.length
+  if (running === total) return 'Все активны'
+  if (running === 0) return 'Все остановлены'
+  return `${running}/${total} активны`
+})
+
+// Загрузка всех данных
+async function fetchDashboardData() {
+  try {
+    // Статусы сервисов
+    gatewayStatus.value = await gatewayService.checkHealth()
+    pmStatus.value = await processManager.checkHealth()
+    tmStatus.value = await taskManager.checkHealth()
+
+    // Агенты
+    const agentsObj = await processManager.getAgents()
+    agents.value = Object.values(agentsObj)
+
+    // Задачи
+    tasks.value = await taskManager.getTasks()
+
+    // Важные события
+    await fetchImportantEvents()
+  } catch (e) {
+    console.error('Ошибка загрузки данных дашборда', e)
+  }
+}
+
+// Загрузка важных событий (пока из логов task-manager)
+async function fetchImportantEvents() {
+  loadingEvents.value = true
+  try {
+    const logs = await taskManager.getLastLogs(50) // берём 50 последних строк
+    // Фильтруем строки, содержащие ERROR, WARNING, и парсим их
+    const events = []
+    for (const line of logs) {
+      // Пытаемся извлечь уровень и сообщение (формат логов: "2025-03-14 10:23:45 - name - ERROR - сообщение")
+      const match = line.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*?(\bERROR\b|\bWARNING\b|\bINFO\b).*?[-]\s*(.*)/i)
+      if (match) {
+        events.push({
+          time: match[1].slice(11), // только время (HH:MM:SS)
+          level: match[2].toLowerCase(),
+          message: match[3].trim()
+        })
+      } else {
+        // Если не удалось распарсить, просто показываем строку целиком (обрезанную)
+        events.push({
+          time: '',
+          level: 'info',
+          message: line.slice(0, 80) + (line.length > 80 ? '...' : '')
+        })
+      }
+    }
+    importantEvents.value = events.slice(0, 10) // последние 10
+  } catch (e) {
+    console.error('Ошибка загрузки событий', e)
+  } finally {
+    loadingEvents.value = false
+  }
+}
+
+onMounted(fetchDashboardData)
 </script>

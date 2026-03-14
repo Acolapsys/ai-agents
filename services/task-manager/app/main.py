@@ -111,3 +111,17 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
         logger.error(f"Task not found for delete {task_id}")
         raise HTTPException(status_code=404, detail="Task not found")
     return task
+
+@app.get("/logs/last")
+async def get_last_logs(lines: int = 5):
+    log_file = Path.home() / "ai-agents" / "logs" / "task-manager" / "service.log"
+    if not log_file.exists():
+        return {"logs": []}
+    try:
+        with open(log_file, 'r', encoding='utf-8') as f:
+            all_lines = f.readlines()
+            last_lines = all_lines[-lines:]
+            return {"logs": last_lines}
+    except Exception as e:
+        logger.error(f"Ошибка получения логов: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

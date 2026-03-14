@@ -30,6 +30,26 @@ class TaskManagerService extends ApiService {
     const { data } = await this.delete(`/tasks/${id}`)
     return data
   }
+
+  async checkHealth() {
+    try {
+      const { data } = await this.get('/health')
+      return { ok: true, data }
+    } catch (e) {
+      logger.error('TaskManager health check failed', e)
+      return { ok: false, error: e.message }
+    }
+  }
+
+  async getLastLogs(lines = 5) {
+    try {
+      const { data } = await this.get(`/logs/last?lines=${lines}`)
+      return data.logs || []
+    } catch (e) {
+      logger.error('Failed to get last logs', e)
+      return []
+    }
+  }
 }
 
 export default new TaskManagerService()
