@@ -16,8 +16,9 @@
       <AppCard class="text-center">
         <div class="text-sm text-gray-500 mb-1">Gateway</div>
         <div class="flex items-center justify-center space-x-2">
-          <span class="inline-block w-3 h-3 rounded-full" :class="gatewayStatus.ok ? 'bg-green-500' : 'bg-red-500'"></span>
-          <span class="font-medium">{{ gatewayStatus.ok ? 'Доступен' : 'Недоступен' }}</span>
+          <span class="inline-block w-3 h-3 rounded-full"
+            :class="gateway.ok ? 'bg-green-500' : 'bg-red-500'"></span>
+          <span class="font-medium">{{ gateway.ok ? 'Доступен' : 'Недоступен' }}</span>
         </div>
       </AppCard>
 
@@ -25,8 +26,9 @@
       <AppCard class="text-center">
         <div class="text-sm text-gray-500 mb-1">Process Manager</div>
         <div class="flex items-center justify-center space-x-2">
-          <span class="inline-block w-3 h-3 rounded-full" :class="pmStatus.ok ? 'bg-green-500' : 'bg-red-500'"></span>
-          <span class="font-medium">{{ pmStatus.ok ? 'Доступен' : 'Недоступен' }}</span>
+          <span class="inline-block w-3 h-3 rounded-full"
+            :class="processManager.ok ? 'bg-green-500' : 'bg-red-500'"></span>
+          <span class="font-medium">{{ processManager.ok ? 'Доступен' : 'Недоступен' }}</span>
         </div>
       </AppCard>
 
@@ -34,8 +36,9 @@
       <AppCard class="text-center">
         <div class="text-sm text-gray-500 mb-1">Task Manager</div>
         <div class="flex items-center justify-center space-x-2">
-          <span class="inline-block w-3 h-3 rounded-full" :class="tmStatus.ok ? 'bg-green-500' : 'bg-red-500'"></span>
-          <span class="font-medium">{{ tmStatus.ok ? 'Доступен' : 'Недоступен' }}</span>
+          <span class="inline-block w-3 h-3 rounded-full"
+            :class="taskManager.ok ? 'bg-green-500' : 'bg-red-500'"></span>
+          <span class="font-medium">{{ taskManager.ok ? 'Доступен' : 'Недоступен' }}</span>
         </div>
       </AppCard>
 
@@ -61,21 +64,15 @@
         Нет важных событий
       </div>
       <div v-else class="space-y-2 max-h-80 overflow-y-auto pr-2">
-        <div
-          v-for="(event, idx) in importantEvents"
-          :key="idx"
-          class="flex items-start space-x-2 text-sm border-b border-sky-reflection/20 pb-2 last:border-0"
-        >
+        <div v-for="(event, idx) in importantEvents" :key="idx"
+          class="flex items-start space-x-2 text-sm border-b border-sky-reflection/20 pb-2 last:border-0">
           <span class="text-xs text-gray-400 whitespace-nowrap">{{ event.time }}</span>
           <span class="flex-1 text-gray-700">{{ event.message }}</span>
-          <span
-            class="px-1.5 py-0.5 rounded text-xs font-medium"
-            :class="{
-              'bg-red-100 text-red-800': event.level === 'error',
-              'bg-yellow-100 text-yellow-800': event.level === 'warn',
-              'bg-blue-100 text-blue-800': event.level === 'info'
-            }"
-          >
+          <span class="px-1.5 py-0.5 rounded text-xs font-medium" :class="{
+            'bg-red-100 text-red-800': event.level === 'error',
+            'bg-yellow-100 text-yellow-800': event.level === 'warn',
+            'bg-blue-100 text-blue-800': event.level === 'info'
+          }">
             {{ event.level }}
           </span>
         </div>
@@ -86,25 +83,17 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+  import { storeToRefs } from 'pinia'
 import AppCard from '@/components/ui/AppCard.vue'
-import gatewayService from '@/services/api/GatewayService'
-import processManager from '@/services/api/ProcessManagerService'
-import taskManager from '@/services/api/TaskManagerService'
-import agentsService from '@/services/api/AgentsService'
-import dashboardService from '@/services/api/DashboardService'
+import { useServiceStatusStore } from '@/stores/serviceStatusStore'
+
+const serviceStore = useServiceStatusStore()
+
+const { gateway, processManager, taskManager, agents, importantEvents, tasks } = storeToRefs(serviceStore)
 
 // Данные
-const agents = ref([])
-const importantEvents = ref([])
 const loadingEvents = ref(false)
 
-// Статусы сервисов
-const gatewayStatus = ref({ ok: false })
-const pmStatus = ref({ ok: false })
-const tmStatus = ref({ ok: false })
-
-// Загрузка агентов и задач для статистики
-const tasks = ref([])
 
 // Статистика
 const stats = computed(() => {
@@ -135,54 +124,10 @@ const agentsStatusText = computed(() => {
   return `${running}/${total} активны`
 })
 
-// Загрузка всех данных
-async function fetchDashboardData() {
-  try {
-    const data = await dashboardService.getDashboard()
-
-    gatewayStatus.value = { ok: data.gateway?.status === 'ok' }
-    pmStatus.value = { ok: data.processManager?.status === 'ok' }
-    tmStatus.value = { ok: data.taskManager?.status === 'ok' }
-    agents.value = data.agents || []
-    tasks.value = data.tasks || []
-    importantEvents.value = data.importantEvents || []
-  } catch (e) {
-    console.error('Ошибка загрузки данных дашборда', e)
-  }
-}
-
-// Загрузка важных событий (пока из логов task-manager)
-async function fetchImportantEvents() {
+onMounted(() => {
   loadingEvents.value = true
-  try {
-    const logs = await taskManager.getLastLogs(50) // берём 50 последних строк
-    // Фильтруем строки, содержащие ERROR, WARNING, и парсим их
-    const events = []
-    for (const line of logs) {
-      // Пытаемся извлечь уровень и сообщение (формат логов: "2025-03-14 10:23:45 - name - ERROR - сообщение")
-      const match = line.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*?(\bERROR\b|\bWARNING\b|\bINFO\b).*?[-]\s*(.*)/i)
-      if (match) {
-        events.push({
-          time: match[1].slice(11), // только время (HH:MM:SS)
-          level: match[2].toLowerCase(),
-          message: match[3].trim()
-        })
-      } else {
-        // Если не удалось распарсить, просто показываем строку целиком (обрезанную)
-        events.push({
-          time: '',
-          level: 'info',
-          message: line.slice(0, 80) + (line.length > 80 ? '...' : '')
-        })
-      }
-    }
-    importantEvents.value = events.slice(0, 10) // последние 10
-  } catch (e) {
-    console.error('Ошибка загрузки событий', e)
-  } finally {
-    loadingEvents.value = false
-  }
-}
+  serviceStore.checkAll()
+  loadingEvents.value = false
 
-onMounted(fetchDashboardData)
+})
 </script>

@@ -14,7 +14,7 @@
 
         <div class="flex-1 overflow-y-auto">
           <div class="space-y-2">
-            <div v-for="agent in agents" :key="agent.id"
+            <div v-for="agent in sortedAgents" :key="agent.id"
               class="p-3 rounded-lg cursor-pointer transition-all duration-200" :class="selectedChat?.id === agent.id
                 ? 'bg-sky-reflection/20 border-l-4 border-baltic-blue'
                 : 'hover:bg-gray-100'
@@ -341,6 +341,14 @@ const selectChat = async (chat) => {
     scrollToBottom()
   }
 }
+
+const sortedAgents = computed(() => {
+  return [...agents.value].sort((a, b) => {
+    const lastA = messagesByAgent.value[a.id]?.slice(-1)[0]?.timestamp || 0
+    const lastB = messagesByAgent.value[b.id]?.slice(-1)[0]?.timestamp || 0
+    return lastB - lastA // сначала новые
+  })
+})
 
 // Автоматическая прокрутка при новых сообщениях
 watch(currentMessages, () => {
