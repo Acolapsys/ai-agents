@@ -108,13 +108,13 @@
 
 ### Этап 1. Сбор данных внутри Nexus
 
-- [ ] Создать таблицу user_actions в SQLite (или отдельный сервис tracker).
-- [ ] Определить структуру события: id, timestamp, user_id, action_type, details (JSON).
-- [ ] Интегрировать запись в BaseAgent:
-      -- [ ] При отправке сообщения (\_add_message) записывать событие типа chat.
-      -- [ ] При создании задачи (create_task) – событие task_created.
-      -- [ ] При обновлении статуса задачи (update_task) – событие task_completed / task_updated.
-- [ ] Сделать это для начала только для Михаила, потом раскатать на всех.
+- [x] Создать таблицу user_actions в SQLite (или отдельный сервис tracker).
+- [x] Определить структуру события: id, timestamp, user_id, action_type, details (JSON).
+- [x] Интегрировать запись в BaseAgent:
+      -- [x] При отправке сообщения (\_add_message) записывать событие типа chat.
+      -- [x] При создании задачи (create_task) – событие task_created.
+      -- [x] При обновлении статуса задачи (update_task) – событие task_completed / task_updated.
+- [x] Сделать это для начала только для Михаила, потом раскатать на всех.
 
 ### Этап 2. Базовый анализ
 
