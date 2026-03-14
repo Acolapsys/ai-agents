@@ -91,6 +91,7 @@ import gatewayService from '@/services/api/GatewayService'
 import processManager from '@/services/api/ProcessManagerService'
 import taskManager from '@/services/api/TaskManagerService'
 import agentsService from '@/services/api/AgentsService'
+import dashboardService from '@/services/api/DashboardService'
 
 // Данные
 const agents = ref([])
@@ -137,20 +138,14 @@ const agentsStatusText = computed(() => {
 // Загрузка всех данных
 async function fetchDashboardData() {
   try {
-    // Статусы сервисов
-    gatewayStatus.value = await gatewayService.checkHealth()
-    pmStatus.value = await processManager.checkHealth()
-    tmStatus.value = await taskManager.checkHealth()
+    const data = await dashboardService.getDashboard()
 
-    // Агенты
-    const agentsObj = await processManager.getAgents()
-    agents.value = Object.values(agentsObj)
-
-    // Задачи
-    tasks.value = await taskManager.getTasks()
-
-    // Важные события
-    await fetchImportantEvents()
+    gatewayStatus.value = { ok: data.gateway?.status === 'ok' }
+    pmStatus.value = { ok: data.processManager?.status === 'ok' }
+    tmStatus.value = { ok: data.taskManager?.status === 'ok' }
+    agents.value = data.agents || []
+    tasks.value = data.tasks || []
+    importantEvents.value = data.importantEvents || []
   } catch (e) {
     console.error('Ошибка загрузки данных дашборда', e)
   }

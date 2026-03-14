@@ -1,6 +1,7 @@
 import os
 import logging
 import yaml
+import asyncio
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import httpx
@@ -120,7 +121,7 @@ async def chat_with_agent(agent_name: str, request: ChatRequest):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "agents": list(AGENTS.keys())}
+    return {"status": "ok"}
 
 @app.get("/history/{agent_name}")
 async def get_agent_history(agent_name: str, chat_id: str, limit: int = 50):
@@ -134,3 +135,72 @@ async def get_agent_history(agent_name: str, chat_id: str, limit: int = 50):
         except Exception as e:
             logger.error(f"Error fetching history for {agent_name}: {e}")
             return []
+
+@app.get("/dashboard")
+async def get_dashboard():
+    async with httpx.AsyncClient() as client:
+        # Параллельно опрашиваем
+        tasks = [
+            client.get("http://localhost:8008/agents"),
+            client.get("http://localhost:8009/tasks"),
+            client.get("http://localhost:8009/logs/last?lines=50"),
+            client.get("http://localhost:8008/health"),
+            client.get("http://localhost:8000/health"),
+            client.get("http://localhost:8009/health"),
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Функция для безопасного получения JSON
+        def safe_json(resp, default=None):
+            if isinstance(resp, httpx.Response) and resp.status_code == 200:
+                try:
+                    return resp.json()
+                except:
+                    pass
+            return default if default is not None else {}
+
+        agents_data = safe_json(results[0], {})
+        tasks_data = safe_json(results[1], [])
+        logs_data = safe_json(results[2], {"logs": []})
+        pm_health = safe_json(results[3], {"status": "error"})
+        gw_health = safe_json(results[4], {"status": "error"})
+        tm_health = safe_json(results[5], {"status": "error"})
+
+        # Преобразуем агентов в массив
+        agents_list = []
+        if agents_data:
+            for aid, info in agents_data.items():
+                info["id"] = aid
+                agents_list.append(info)
+
+        # Извлекаем важные события из логов
+        important_events = []
+        if logs_data and "logs" in logs_data:
+            for line in logs_data["logs"]:
+                if "ERROR" in line or "WARNING" in line:
+                    important_events.append(line)
+
+        return {
+            "gateway": gw_health,
+            "processManager": pm_health,
+            "taskManager": tm_health,
+            "agents": agents_list,
+            "tasks": tasks_data,
+            "importantEvents": important_events[:10]
+        }
+
+@app.get("/agents")
+async def get_agents():
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get("http://localhost:8008/agents", timeout=10.0)
+            data = resp.json()
+            # process-manager возвращает объект { agent_id: {...} }, преобразуем в массив
+            agents_list = []
+            for aid, info in data.items():
+                info["id"] = aid
+                agents_list.append(info)
+            return agents_list
+        except Exception as e:
+            logger.error(f"Error fetching agents from process-manager: {e}")
+            raise HTTPException(status_code=503, detail="Process Manager unavailable")

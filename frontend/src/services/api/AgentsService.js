@@ -28,15 +28,8 @@ class AgentsService extends ApiService {
   }
 
   async getAgents() {
-    // пока мок, потом заменим на реальный вызов
-    return [
-      { id: 'designer', name: 'Дизайнер' },
-      { id: 'mentor', name: 'Ментор' },
-      { id: 'secretary', name: 'Секретарь' },
-      { id: 'family', name: 'Семейный советник' },
-      { id: 'architect', name: 'Архитектор' },
-      { id: 'english_mentor', name: 'Учитель английского' },
-    ]
+    const { data } = await this.get('/agents')
+    return data // уже массив, как сформировали в gateway
   }
 }
 
