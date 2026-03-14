@@ -3,6 +3,7 @@ import sys
 import aiohttp
 import os
 import json
+import asyncio
 from pathlib import Path
 from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "common"))
@@ -58,12 +59,19 @@ class SecretaryAgent(BaseAgent):
                 async with session.post(f"{self.task_manager_url}/tasks", json=payload) as resp:
                     if resp.status in (200, 201):
                         data = await resp.json()
+                        asyncio.create_task(self._track_action("task_created", {
+                            "task_id": data['id'],
+                            "title": title,
+                            "priority": priority,
+                            "project": project
+                        }))
                         return json.dumps({"status": "ok", "task_id": data['id'], "message": f"Задача '{title}' создана в проекте {project}" if project else f"Задача '{title}' создана"})
                     else:
                         error_text = await resp.text()
                         return json.dumps({"status": "error", "message": f"Ошибка создания задачи: {error_text}"})
         except Exception as e:
             return json.dumps({"status": "error", "message": f"Не удалось связаться с таск-трекером: {str(e)}"})
+
     async def get_tasks(self, status: str = None, assignee: str = None, search: str = None, project: str = None) -> str:
         params = {}
         if status:
@@ -79,6 +87,9 @@ class SecretaryAgent(BaseAgent):
                 async with session.get(f"{self.task_manager_url}/tasks", params=params) as resp:
                     if resp.status == 200:
                         tasks = await resp.json()
+                        asyncio.create_task(self._track_action("get_tasks", {
+                            "params": params,
+                        }))
                         return json.dumps({"status": "ok", "tasks": tasks})
                     else:
                         error_text = await resp.text()
@@ -133,6 +144,10 @@ class SecretaryAgent(BaseAgent):
                 async with session.put(f"{self.task_manager_url}/tasks/{task_id}", json=update_payload) as resp:
                     if resp.status == 200:
                         updated = await resp.json()
+                        asyncio.create_task(self._track_action("task_updated", {
+                            "task_id": task_id,
+                            "changes": update_payload
+                        }))
                         return json.dumps({
                             "status": "ok",
                             "task": updated,

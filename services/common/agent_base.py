@@ -8,6 +8,8 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Callable
 from openai import AsyncOpenAI
+import asyncio
+import aiohttp
 
 class BaseAgent:
     def __init__(self, config_path: str):
@@ -147,6 +149,12 @@ class BaseAgent:
         if len(self.conversations[chat_id]) > 50:
             self.conversations[chat_id] = self.conversations[chat_id][-50:]
         self._save_conversations()
+
+        asyncio.create_task(self._track_action("chat", {
+        "chat_id": chat_id,
+        "role": role,
+        "content_preview": content[:100]
+    }))
 
     def _get_history(self, chat_id: str, limit: int = 10) -> List[Dict]:
         if chat_id not in self.conversations:
@@ -290,3 +298,20 @@ class BaseAgent:
         message_text = update.message.text
         response = await self.process_message(message_text, user_id, chat_id)
         await update.message.reply_text(response)
+
+    async def _track_action(self, action_type: str, details: dict):
+        """Отправляет событие в трекер"""
+        tracker_url = os.environ.get("TRACKER_URL", "http://localhost:8010")
+        try:
+            async with aiohttp.ClientSession() as session:
+                await session.post(
+                    f"{tracker_url}/track",
+                    json={
+                        "action_type": action_type,
+                        "details": details,
+                        "source": self.agent_id
+                    },
+                    timeout=2.0
+                )
+        except Exception as e:
+            self.logger.warning(f"Failed to track action {action_type}: {e}")
